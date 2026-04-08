@@ -1,0 +1,81 @@
+# ── Flutter / Dart ─────────────────────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+**/doc/api/
+
+# Generated files — recreate with: dart run build_runner build
+*.freezed.dart
+*.g.dart
+*.gr.dart
+
+# ── Android ────────────────────────────────────────────────────────────────
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/key.properties
+**/android/**/GeneratedPluginRegistrant.java
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+
+# ── iOS ────────────────────────────────────────────────────────────────────
+**/ios/.symlinks/
+**/ios/Flutter/App.framework/
+**/ios/Flutter/Flutter.framework/
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/.last_build_id
+**/ios/Pods/
+**/ios/Podfile.lock
+**/ios/**/GeneratedPluginRegistrant.h
+**/ios/**/GeneratedPluginRegistrant.m
+**/ios/Runner.xcworkspace/
+
+# ── macOS ──────────────────────────────────────────────────────────────────
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+**/macos/Podfile.lock
+
+# ── Web ────────────────────────────────────────────────────────────────────
+/web/flutter_service_worker.js
+/web/flutter.js
+
+# ── Secrets & environment ──────────────────────────────────────────────────
+.env
+.env.*
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# ── IDE ────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# ── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Misc ───────────────────────────────────────────────────────────────────
+*.class
+*.log
+*.pyc
+*.swp
+.metadata
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+app.*.symbols
+app.*.map.json
