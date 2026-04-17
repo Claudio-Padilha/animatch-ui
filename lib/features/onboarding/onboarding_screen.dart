@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/app_error_alert.dart';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -52,7 +53,9 @@ const _slides = [
 // ---------------------------------------------------------------------------
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  const OnboardingScreen({super.key, this.errorMessage});
+
+  final String? errorMessage;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -61,6 +64,19 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _pageController.jumpToPage(0);
+        setState(() => _currentPage = 0);
+        AppErrorAlert.show(context, widget.errorMessage!);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -237,7 +253,7 @@ class _SlideBackground extends StatelessWidget {
         Positioned.fill(
           child: Image.asset(
             'assets/images/onboarding_1.jpg',
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             alignment: Alignment.center,
           ),
         ),
@@ -260,56 +276,12 @@ class _SlideBackground extends StatelessWidget {
       ];
 
   // Slide 1 — Geo-proximity
-  // Radar rings from centre, a pin, and livestock icons at different distances.
   List<Widget> _geoIllustration(double w, double h) => [
-        // Radar rings
-        Center(child: _ring(w * 0.95, Colors.white.withValues(alpha: 0.05))),
-        Center(child: _ring(w * 0.65, Colors.white.withValues(alpha: 0.09))),
-        Center(child: _ring(w * 0.35, Colors.white.withValues(alpha: 0.14))),
-        // Scattered animals at ring positions
-        Positioned(
-          left: w * 0.07,
-          top: h * 0.18,
-          child: Icon(Icons.agriculture,
-              size: 34, color: Colors.white.withValues(alpha: 0.55)),
-        ),
-        Positioned(
-          right: w * 0.08,
-          top: h * 0.32,
-          child: Icon(Icons.agriculture,
-              size: 28, color: Colors.white.withValues(alpha: 0.45)),
-        ),
-        Positioned(
-          left: w * 0.18,
-          bottom: h * 0.22,
-          child: Icon(Icons.agriculture,
-              size: 24, color: Colors.white.withValues(alpha: 0.38)),
-        ),
-        Positioned(
-          right: w * 0.2,
-          bottom: h * 0.32,
-          child: Icon(Icons.agriculture,
-              size: 22, color: Colors.white.withValues(alpha: 0.32)),
-        ),
-        // Central pin
-        Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.location_on,
-                size: 80,
-                color: Colors.white.withValues(alpha: 0.92),
-              ),
-              Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.25),
-                ),
-              ),
-            ],
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/onboarding_2.jpg',
+            fit: BoxFit.contain,
+            alignment: Alignment.center,
           ),
         ),
       ];
@@ -317,90 +289,14 @@ class _SlideBackground extends StatelessWidget {
   // Slide 2 — Verified breeders
   // Premium badge with association labels floating around it.
   List<Widget> _verifiedIllustration(double w, double h) => [
-        // Outer decorative ring
-        Center(
-          child: Container(
-            width: w * 0.6,
-            height: w * 0.6,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border:
-                  Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
-            ),
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/onboarding_3.jpg',
+            fit: BoxFit.contain,
+            alignment: Alignment.center,
           ),
-        ),
-        // Inner glow circle
-        Center(
-          child: Container(
-            width: w * 0.38,
-            height: w * 0.38,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.07),
-            ),
-          ),
-        ),
-        // Central badge icon
-        Center(
-          child: Icon(
-            Icons.workspace_premium,
-            size: 96,
-            color: Colors.white.withValues(alpha: 0.92),
-          ),
-        ),
-        // Association labels
-        Positioned(
-          left: w * 0.06,
-          top: h * 0.16,
-          child: _assocTag('ABCZ'),
-        ),
-        Positioned(
-          right: w * 0.06,
-          top: h * 0.28,
-          child: _assocTag('ABQM'),
-        ),
-        Positioned(
-          left: w * 0.1,
-          bottom: h * 0.22,
-          child: _assocTag('ABCAngus'),
-        ),
-        Positioned(
-          right: w * 0.08,
-          bottom: h * 0.3,
-          child: _assocTag('ABCCMM'),
         ),
       ];
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-
-  Widget _ring(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: color, width: 1.5),
-        ),
-      );
-
-  Widget _assocTag(String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.white.withValues(alpha: 0.14),
-          border:
-              Border.all(color: Colors.white.withValues(alpha: 0.28), width: 1),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.4,
-          ),
-        ),
-      );
 }
 
 // ---------------------------------------------------------------------------

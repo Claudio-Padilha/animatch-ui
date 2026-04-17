@@ -1,34 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animatch_logo.dart';
+import '../providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _identifierController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: call auth repository
-      context.go(AppRoutes.discover);
+  Future<void> _login() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).login(
+            email: _emailController.text.trim(),
+          );
+      // RouterNotifier handles navigation once auth state is set
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -55,36 +64,35 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const AnimatchLogo(),
               const SizedBox(height: 32),
-              Text(
-                'Entrar na sua conta',
-                style: theme.textTheme.headlineSmall,
-              ),
+              Text('Bem-vindo de volta', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
               Text(
-                'Use seu e-mail ou CPF/CNPJ para acessar.',
+                'Entre para acessar a sua conta.',
                 style: theme.textTheme.bodyMedium
                     ?.copyWith(color: AppColors.muted),
               ),
               const SizedBox(height: 28),
 
-              // ── E-mail / CPF/CNPJ ──────────────────────────────────
+              // ── E-mail ───────────────────────────────────────────────────────
               TextFormField(
-                controller: _identifierController,
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'E-mail ou CPF/CNPJ',
-                ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
+                decoration: const InputDecoration(labelText: 'E-mail'),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Campo obrigatório';
+                  if (!v.contains('@')) return 'E-mail inválido';
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
-              // ── Password ───────────────────────────────────────────
+              // ── Senha ────────────────────────────────────────────────────────
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _submit(),
+                onFieldSubmitted: (_) => _login(),
                 decoration: InputDecoration(
                   labelText: 'Senha',
                   suffixIcon: IconButton(
@@ -103,45 +111,25 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 28),
 
-              // ── Primary CTA ────────────────────────────────────────
+              // ── Primary CTA ──────────────────────────────────────────────────
               FilledButton(
-                onPressed: _submit,
-                child: const Text('Entrar'),
+                onPressed: _isLoading ? null : _login,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Entrar'),
               ),
               const SizedBox(height: 16),
 
-              // ── Forgot password ────────────────────────────────────
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    // TODO: navigate to forgot password screen
-                  },
-                  style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary),
-                  child: const Text('Esqueci minha senha'),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Divider ────────────────────────────────────────────
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      'ou',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // ── Register link ──────────────────────────────────────
+              // ── Register link ────────────────────────────────────────────────
               OutlinedButton(
-                onPressed: () => context.go(AppRoutes.register),
+                onPressed: _isLoading ? null : () => context.go(AppRoutes.register),
                 child: const Text('Criar conta gratuita'),
               ),
             ],

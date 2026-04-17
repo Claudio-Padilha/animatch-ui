@@ -35,9 +35,18 @@
 | Style            | Font              | Size | Weight |
 |------------------|-------------------|------|--------|
 | `displayLarge`   | Merriweather      | 32   | Bold   |
+| `displayMedium`  | Merriweather      | 28   | Bold   |
+| `headlineLarge`  | Merriweather      | 28   | Bold   |
 | `headlineMedium` | Merriweather      | 24   | Bold   |
+| `headlineSmall`  | Merriweather      | 20   | Bold   |
+| `titleLarge`     | Inter             | 18   | 600    |
 | `titleMedium`    | Inter             | 16   | 600    |
+| `titleSmall`     | Inter             | 14   | 600    |
+| `bodyLarge`      | Inter             | 16   | 400    |
 | `bodyMedium`     | Inter             | 14   | 400    |
+| `bodySmall`      | Inter             | 12   | 400    |
+| `labelLarge`     | Inter             | 14   | 500    |
+| `labelMedium`    | Inter             | 12   | 500    |
 | `labelSmall`     | Inter             | 11   | 500    |
 
 Merriweather for headings gives a heritage/pedigree feel. Inter for body keeps it readable on small screens.
@@ -65,33 +74,43 @@ Bottom `NavigationBar` (Material 3) with 4 destinations:
 
 ```
 ┌────────────────────────────┐
+│                    [ Pular]│  ← top-right, all slides
 │                            │
-│   [Full-bleed photo of     │
-│    Nelore in field]        │
+│   [Slide background]       │
+│   (see slide details below)│
 │                            │
-│   ────────────────         │
-│                            │
-│   Conecte seus animais     │
-│   com a melhor genética    │
-│   do Brasil.               │
-│                            │
-│   Encontre parceiros de    │
-│   reprodução por raça,     │
-│   região e qualidade.      │
-│                            │
-│      ○ ● ○                 │
-│                            │
-│   [ Começar ]              │
-│   [ Já tenho conta ]       │
+│  ┌─ content panel ────────┐│
+│  │                        ││
+│  │ Conecte seus animais   ││
+│  │ com a melhor genética  ││
+│  │ do Brasil.             ││
+│  │                        ││
+│  │ Encontre parceiros de  ││
+│  │ reprodução por raça,   ││
+│  │ região e qualidade.    ││
+│  │                        ││
+│  │   ══ ─ ─   (dots)      ││  ← active dot is wide pill
+│  │                        ││
+│  │  [ Continuar ]         ││  ← "Começar" on last slide
+│  │  [ Já tenho conta ]    ││
+│  └────────────────────────┘│
 └────────────────────────────┘
 ```
 
-**Slides:** (1) Matching concept, (2) Geo-proximity, (3) Verified breeders
+**Slide backgrounds:**
+- **Slide 1** — full-bleed `onboarding_1.jpg` (matching concept photo) with a subtle top scrim
+- **Slide 2** — dark green gradient (`#0D2105` → `#2D5016`) with radar rings and scattered `agriculture` icons representing geo-proximity
+- **Slide 3** — gold gradient (`#3D2A00` → `#C8860A`) with a premium badge icon and floating association chips (ABCZ, ABQM, ABCAngus, ABCCMM)
+
+**Dots indicator:** animated pill — active dot expands horizontally (22 px wide); inactive dots are 8 px circles.
+
+**Navigation:** "Pular" and "Começar" → Register. "Já tenho conta" → Login.
+
 **UX rationale:** Breeders are not necessarily tech-native. 3 slides max. Skip button top-right.
 
 ---
 
-### 2. Login / Register
+### 2a. Login
 
 ```
 ┌────────────────────────────┐
@@ -100,6 +119,8 @@ Bottom `NavigationBar` (Material 3) with 4 destinations:
 │  [Animatch logo]           │
 │                            │
 │  Entrar na sua conta       │
+│  Use seu e-mail ou         │
+│  CPF/CNPJ para acessar.    │
 │                            │
 │  ┌──────────────────────┐  │
 │  │ E-mail ou CPF/CNPJ   │  │
@@ -110,11 +131,11 @@ Bottom `NavigationBar` (Material 3) with 4 destinations:
 │                            │
 │  [ Entrar ]                │
 │                            │
-│  Esqueci minha senha       │
+│  [ Esqueci minha senha ]   │
 │                            │
 │  ─────── ou ───────        │
 │                            │
-│  [ Criar conta gratuita ]  │
+│  [ Criar conta gratuita ]  │  ← OutlinedButton
 └────────────────────────────┘
 ```
 
@@ -122,27 +143,74 @@ Bottom `NavigationBar` (Material 3) with 4 destinations:
 
 ---
 
-### 3. Discover (Home Feed)
-
-The core screen. Swipeable animal cards stacked on a map background.
+### 2b. Register
 
 ```
 ┌────────────────────────────┐
-│  Animatch        🔔  ⚙️   │
+│  ← Voltar                  │
 │                            │
-│  [Subtle map of Brazil     │
-│   with dots for animals    │
-│   in the background]       │
+│  [Animatch logo]           │
+│                            │
+│  Criar sua conta           │
+│  Acesse a maior rede de    │
+│  genética de elite.        │
 │                            │
 │  ┌──────────────────────┐  │
-│  │ [Animal photo]       │  │
+│  │ Nome completo        │  │
+│  └──────────────────────┘  │
+│  ┌──────────────────────┐  │
+│  │ E-mail               │  │
+│  └──────────────────────┘  │
+│  ┌──────────────────────┐  │
+│  │ CPF ou CNPJ          │  │
+│  └──────────────────────┘  │
+│  ┌──────────────────────┐  │
+│  │ Senha           👁   │  │
+│  └──────────────────────┘  │
+│  ┌──────────────────────┐  │
+│  │ Confirmar senha 👁   │  │
+│  └──────────────────────┘  │
+│                            │
+│  [ Criar conta ]           │
+│                            │
+│  Já tem uma conta? Entrar  │
+└────────────────────────────┘
+```
+
+**Validation:** E-mail must contain `@`. Senha minimum 8 characters. Confirm senha must match. All fields required.
+
+**UX rationale:** CPF/CNPJ captured at registration enables Verified Breeder validation later. Both password fields have independent visibility toggles.
+
+---
+
+### 3. Discover (Home Feed)
+
+The core screen. Swipeable animal cards.
+
+```
+┌────────────────────────────┐
+│  Animatch        🔔  🎛️   │
+│                            │
+│  ┌ selected animal banner┐ │  ← shown when an animal is selected
+│  │ ♥ Buscando par para:  │ │
+│  │ Imperador da Serra    │ │
+│  │                 Trocar│ │
+│  └────────────────────────┘ │
+│                            │
+│  [Espécie ▾][Raça ▾][Distância ▾][Disponível]
+│                            │
+│  ┌──────────────────────┐  │
 │  │                      │  │
-│  │ Imperador da Serra   │  │
-│  │ Nelore · Touro       │  │
-│  │ ⭐ 87/100            │  │
-│  │ 📍 ~340 km · MG     │  │
+│  │  ⭐ 87/100           │  │  ← score badge overlays photo
 │  │                      │  │
-│  │ [Breeder name] ✓     │  │
+│  │  [Full-bleed photo,  │  │  ← BoxFit.contain on black bg
+│  │   black letterbox]   │  │
+│  │                      │  │
+│  │  Imperador da Serra  │  │
+│  │  Nelore · Touro      │  │
+│  │  📍 ~340 km · MG     │  │
+│  │  👤 João Mendonça    │  │
+│  │     [Verificado]     │  │
 │  └──────────────────────┘  │
 │                            │
 │      ✕         ♥           │
@@ -150,12 +218,16 @@ The core screen. Swipeable animal cards stacked on a map background.
 └────────────────────────────┘
 ```
 
+**No-animal-selected state:** If no animal is selected from Meu Rebanho, a full-screen empty state replaces the swiper with instructions and a "Meu Rebanho" button.
+
+**Empty state (all cards swiped):** "Nenhum animal por aqui / Tente ajustar os filtros ou volte mais tarde."
+
+**Selected animal banner:** Pinned below the AppBar when an animal is active for pairing. "Trocar" link navigates to Meu Rebanho to change selection.
+
 **Card details:**
-- Large animal photo (landscape crop)
-- Name, species, breed, sex
-- Quality score (badge, 0–100)
-- Distance — shown at state level for free-tier source animal, município for premium
-- Breeder name + verified badge if applicable
+- Full-bleed photo with `BoxFit.contain` on black background (full animal visible, letterboxed if needed)
+- Score badge (top of content overlay), name, breed · sex, distance, breeder + "Verificado" pill if verified
+- Gradient scrim from center to bottom so text is readable over photo
 
 **Swipe gestures:** right = like, left = pass. Buttons also available for accessibility.
 
@@ -164,44 +236,60 @@ The core screen. Swipeable animal cards stacked on a map background.
 [Espécie ▾]  [Raça ▾]  [Distância ▾]  [Disponível]
 ```
 
-**UX rationale:** Map background reinforces that geo-proximity is the primary signal. Quality score is visible immediately — these users judge animals fast.
+**Note:** Map background is planned but not yet implemented. Background is currently `surface` colour.
+
+**UX rationale:** Quality score is visible immediately — these users judge animals fast. Selected-animal banner keeps context clear when swiping.
 
 ---
 
 ### 4. Animal Detail (full profile)
 
-Reached by tapping the card (not swiping).
+Reached by tapping the card (not swiping). No traditional AppBar — a floating circular back button overlays the photo.
 
 ```
 ┌────────────────────────────┐
-│  ←  Imperador da Serra     │
+│ ←  (floating circle btn)   │  ← overlays photo, top-left
 │                            │
-│  [Photo carousel]          │
-│  ○ ● ○ ○                  │
+│  [Photo, 440px height,     │
+│   BoxFit.contain, black bg]│
+│  ── ─ ─  (dot indicator)   │  ← only shown if >1 photo
 │                            │
-│  Imperador da Serra        │
+│  Imperador da Serra        │  ← headlineMedium (Merriweather)
 │  Nelore · Touro · 4 anos   │
-│  ⭐ Qualidade: 87/100      │
+│  [⭐ Qualidade: 87/100]    │  ← coloured pill badge
 │                            │
-│  ──── Localização ────     │
-│  📍 Triângulo Mineiro, MG  │
-│  ~340 km de você           │
+│  ┌─ LOCALIZAÇÃO ──────────┐│
+│  │ 📍 Triângulo Mineiro,MG││
+│  │ 〰 ~340 km de você · MG││
+│  └────────────────────────┘│
+│  ┌─ CRIADOR ───────────────┐│
+│  │ [J] João Mendonça  ✓   ││  ← initial avatar + verified icon
+│  │     Produtor Premium    ││
+│  └────────────────────────┘│
+│  ┌─ GENÉTICA ──────────────┐│
+│  │ 🌿 Pedigree: ver no ABCZ││
+│  │ DEP Peso      [+12.4]  ││  ← green pill for positive
+│  │ DEP Conf.     [+8.1]   ││
+│  └────────────────────────┘│
+│  ┌─ REGISTRO ──────────────┐│
+│  │ 🪪 ABCZ: 4521-MG        ││
+│  └────────────────────────┘│
 │                            │
-│  ──── Criador ─────        │
-│  [Avatar] João Mendonça ✓  │
-│  Produtor Premium          │
-│                            │
-│  ──── Genética ─────       │
-│  Pedigree: [link ABCZ]     │
-│  DEP Peso: +12.4           │
-│  DEP Conf.: +8.1           │
-│                            │
-│  ──── Registro ─────       │
-│  ABCZ: 4521-MG             │
-│                            │
-│        [ ♥ Curtir ]        │
+│  [bottom nav bar]          │
+│      ✕         ♥           │  ← floating above bottom nav
+│    Passar    Curtir        │
 └────────────────────────────┘
 ```
+
+**Score badge colour:** gold (`#D4A017`) for ≥90, primary green for ≥75, muted for lower.
+
+**DEP values:** colour-coded pills — green for positive (`+`), red for negative. Values shown with one decimal place.
+
+**Breeder row:** circle avatar with name initial, "Produtor Premium" subtitle if verified, plain "Produtor" otherwise.
+
+**Curtir action:** shows confirmation dialog — "Curtiu! Seu interesse em [animal] foi registrado. Você será notificado quando o criador responder."
+
+**Bottom nav** remains visible (screen uses `AppBottomNav`). Floating CTAs sit above it.
 
 **UX rationale:** DEP/EPD values are shown as plain numbers — breeders know what they mean. ABCZ registration is a trust signal. Contact details are NOT shown here (only after match confirmation).
 
@@ -226,20 +314,14 @@ Reached by tapping the card (not swiping).
 │  │         ⏳ Pendente   │  │
 │  │         Hoje          │  │
 │  └──────────────────────┘  │
-│                            │
-│  ┌──────────────────────┐  │
-│  │ [Photo] Rainha Árabe  │  │
-│  │         Quarto Milha  │  │
-│  │         ❌ Recusado   │  │
-│  │         5 dias atrás  │  │
-│  └──────────────────────┘  │
 └────────────────────────────┘
 ```
 
 **Status badges:**
-- `✅ Confirmado` — both sides liked, contact revealed
-- `⏳ Pendente` — waiting for the other breeder
-- `❌ Recusado` — rejected
+- `✅ Confirmado` — both sides liked, contact revealed; tapping opens Match Detail
+- `⏳ Pendente` — waiting for the other breeder; not tappable
+
+**Note:** Rejected matches are not shown in the list — the list only surfaces actionable states.
 
 **UX rationale:** Status is the most important information — show it immediately on the list item. No mystery about where a match stands.
 
@@ -253,28 +335,51 @@ Only reachable for `Confirmado` matches. **This is where contact is revealed.**
 ┌────────────────────────────┐
 │  ← Match Confirmado ✅     │
 │                            │
-│  [Your animal photo]       │
-│      ♥                     │
-│  [Their animal photo]      │
+│  [Your photo]  ♥  [Their]  │  ← side by side, heart between
+│  Imperador        Estrela  │
+│  da Serra         Real     │
+│  Nelore·Touro  Nelore·Vaca │
 │                            │
-│  Imperador da Serra        │
-│  ×                         │
-│  Estrela Real              │
+│  ──── Animais ─────        │
+│  SEU ANIMAL                │
+│  Imperador da Serra  ⭐87  │
+│  Nelore · Touro            │
+│  🎂 4 anos  🪪 ABCZ:4521-MG│
+│  📍 Triângulo Mineiro, MG  │
+│  DEP Peso Desmame   [+12.4]│
+│  DEP Conformação    [+8.1] │
+│                            │
+│  ANIMAL DO CRIADOR         │
+│  Estrela Real        ⭐91  │
+│  Nelore · Vaca             │
+│  🎂 3 anos  🪪 ABCZ:7834-GO│
+│  📍 Sul Goiano, GO         │
+│  DEP Peso Desmame   [+14.2]│
+│  DEP Conformação    [+9.5] │
 │                            │
 │  ──── Contato ─────        │
-│  Criador: João Mendonça    │
-│  📞 (34) 9 9812-3456       │
+│  👤 João Mendonça          │
 │  📧 joao@fazendaxyz.com.br │
-│  🌐 fazendaxyz.com.br      │
 │                            │
-│  ──── Ações ───────        │
-│  [ Ligar ]   [ WhatsApp ]  │
+│  [       💬 Chat        ]  │  ← full-width, WhatsApp green
 │                            │
 │  [ Desfazer match ]        │
 └────────────────────────────┘
 ```
 
-**UX rationale:** Contact is only revealed here, fulfilling the privacy rule from the domain. WhatsApp deeplink is essential for the Brazilian market — it's the primary business communication channel.
+**Pair header:** Two photos side by side with a heart circle between them. Each photo has the animal name and breed below it.
+
+**Animal cards:** Each animal shown in a card with score pill, age, registry (ABCZ/ABQM), location, and DEP values as colour-coded pills (green for positive, red for negative). Fields are optional — cards adapt if data is absent.
+
+**Contact section:** Shows only breeder name and email. Phone number is used exclusively by the Chat button and is not displayed as a field.
+
+**Chat button:** Full-width `FilledButton` in WhatsApp green (`#25D366`). Opens `https://wa.me/55{phone}`. No Ligar button — Chat covers the primary communication channel.
+
+**DEP values:** green pill for positive (`+`), red for negative. One decimal place.
+
+**Desfazer match:** shows a confirmation dialog before acting — "O contato será removido e esta conexão será desfeita."
+
+**UX rationale:** Names under photos remove ambiguity at a glance. Single Chat action reduces friction — WhatsApp is the dominant business channel in Brazil.
 
 ---
 
@@ -282,40 +387,108 @@ Only reachable for `Confirmado` matches. **This is where contact is revealed.**
 
 ```
 ┌────────────────────────────┐
-│  Meu Rebanho          [+]  │
+│  Meu Rebanho          [+]  │  ← icon button in AppBar
 │                            │
-│  3 / 5 animais (Free)      │
-│  [░░░░░░░░░░░░░░░░░░░░░░]  │
-│  Upgrade para mais animais │
+│  ┌─ selection banner ─────┐│  ← contextual; hidden if none selected
+│  │ ♥ Buscando par para:   ││
+│  │   Imperador da Serra   ││
+│  └────────────────────────┘│
+│                            │
+│  ┌─ quota card ───────────┐│
+│  │ 3 / 5 animais  [Plano  ││
+│  │                Gratuito││
+│  │ [████████░░░░░░░░░░░░] ││  ← red at limit
+│  │ Upgrade para animais   ││
+│  │ ilimitados →           ││
+│  └────────────────────────┘│
 │                            │
 │  ┌──────────────────────┐  │
 │  │ [Photo] Imperador    │  │
-│  │ Nelore · Disponível  │  │
-│  │ ⭐ 87   [Editar]     │  │
+│  │ Nelore · Touro       │  │
+│  │ ⭐ 87  [Disponível]  │  │
+│  │           [Buscar par]│  │  ← or [✓ Selecionado] if active
 │  └──────────────────────┘  │
 │                            │
 │  ┌──────────────────────┐  │
 │  │ [Photo] Dom Carlos   │  │
-│  │ Nelore · Indisponível│  │
-│  │ ⭐ 72   [Editar]     │  │
+│  │ Nelore · Touro       │  │
+│  │ ⭐ 72  [Indisponível]│  │
+│  │           [Buscar par]│  │
 │  └──────────────────────┘  │
+│                            │
+│       [+ Adicionar animal] │  ← FloatingActionButton.extended
 └────────────────────────────┘
 ```
+
+**Selection flow:** Tapping "Buscar par" marks that animal as active and navigates to Discover. The card highlights with a primary-coloured border and shows "Selecionado" instead.
+
+**Card tap:** Tapping anywhere on an animal card (outside the "Buscar par" button) navigates to Screen 7b — My Animal Detail.
 
 **UX rationale:** The animal count limit (5 for free tier) is shown as a progress bar — not a hard wall. Soft upgrade nudge beneath, not a modal blocker.
 
 ---
 
-### 8. Add / Edit Animal
+### 7b. My Animal Detail
+
+Own-animal detail view, reached by tapping a card in Meu Rebanho. No AppBar — floating circular buttons overlay the photo, matching the style of Screen 4.
 
 ```
 ┌────────────────────────────┐
-│  ← Novo Animal             │
+│ ←                    [✏]   │  ← both floating circle buttons over photo
 │                            │
-│  [Photo upload area]       │
-│  + Adicionar fotos         │
+│  [Full-bleed photo, 400px] │
 │                            │
-│  Nome *                    │
+│  Imperador da Serra        │  ← headlineMedium (Merriweather)
+│  Nelore · Touro · 4 anos   │
+│  [⭐ Qualidade: 87/100]    │  ← coloured pill badge (same rules as Screen 4)
+│  [Disponível]              │  ← green or muted pill
+│                            │
+│  ┌─ IDENTIFICAÇÃO ────────┐│
+│  │ 🪪 ABCZ: 4521-MG       ││
+│  │ 📅 4 anos               ││
+│  │ 🏷 Nelore · Touro       ││
+│  └────────────────────────┘│
+│                            │
+│  ┌─ LOCALIZAÇÃO ──────────┐│
+│  │ 📍 Triângulo Mineiro,MG││
+│  └────────────────────────┘│
+│                            │
+│  ┌─ STATUS ────────────────┐│
+│  │ ✅ Disponível p/ match  ││
+│  │ ⭐ Pontuação: 87/100    ││
+│  └────────────────────────┘│
+│                            │
+│  [bottom nav bar]          │
+└────────────────────────────┘
+```
+
+**Back button:** top-left, same semi-transparent black circle as Screen 4.
+
+**Edit button:** top-right, same semi-transparent black circle with pencil icon. Navigates to Screen 8 (Edit Animal) pre-populated with this animal's data.
+
+**No CTAs for like/pass** — this is the user's own animal, not a candidate for matching. No "Curtir" or "Passar" buttons.
+
+**Photo fallback:** if no image is set, shows a `#2D5016` tinted container with a `pets` icon centred.
+
+**UX rationale:** Keeps the same visual language as the Discover detail screen so breeders feel at home, while removing the pairing actions that don't apply to their own animals.
+
+---
+
+### 8. Add / Edit Animal
+
+Both screens share the same form layout. **Add Animal** (`/rebanho/novo`) starts with all fields empty. **Edit Animal** (`/rebanho/animal/editar`) is reached from Screen 7b's edit button and arrives pre-populated with the selected animal's data; the AppBar title becomes "Editar [animal name]" and there is a **[Salvar]** text action in the AppBar in addition to the bottom button.
+
+```
+┌────────────────────────────┐
+│  ← Novo Animal             │  ← or "Editar Imperador da Serra  [Salvar]"
+│                            │
+│  ┌─ photo area ───────────┐│  ← 180px height, rounded-16
+│  │  [existing photo]      ││  ← on Edit: shows current photo
+│  │  [Alterar foto] badge  ││  ← dark pill overlay, bottom-right
+│  │                        ││  ← on Add: placeholder with camera icon
+│  └────────────────────────┘│
+│                            │
+│  Nome do animal *          │
 │  ┌──────────────────────┐  │
 │  │ Imperador da Serra   │  │
 │  └──────────────────────┘  │
@@ -323,28 +496,40 @@ Only reachable for `Confirmado` matches. **This is where contact is revealed.**
 │  Espécie *    Raça *        │
 │  [Bovino ▾]  [Nelore ▾]   │
 │                            │
-│  Sexo *       Idade        │
-│  [Touro ▾]   [4 anos ▾]   │
+│  Sexo *       Idade (anos) │
+│  [Touro ▾]   [Ex: 4     ] │  ← text field, not dropdown
 │                            │
-│  Registro ABCZ             │
+│  Registro (ABCZ/ABQM/etc.) │
 │  ┌──────────────────────┐  │
 │  └──────────────────────┘  │
 │                            │
 │  Localização *             │
-│  [Use minha localização]   │
-│  ou buscar município...    │
+│  ┌──────────────────────┐  │
+│  │ 📍 Município, UF     │  │  ← text field only, no GPS button
+│  └──────────────────────┘  │
 │                            │
-│  Disponível para match     │
-│  ○ Sim  ○ Não              │
+│  ┌──────────────────────┐  │
+│  │ Disponível para match  ●│  ← SwitchListTile (toggle)
+│  └──────────────────────┘  │
 │                            │
-│  DEP / Índices (opcional)  │
-│  [+ Adicionar índice]      │
+│  ┌─ DEP / Índices ─────[▾]┐│  ← collapsible section
+│  │ (collapsed by default) ││
+│  │ When expanded:         ││
+│  │  DEP Peso ao Nascer    ││
+│  │  DEP Peso ao Desmame   ││
+│  │  DEP Peso aos 18 meses ││
+│  │  Índice de Fertilidade ││
+│  └────────────────────────┘│
 │                            │
-│        [ Salvar ]          │
+│      [ Salvar animal ]     │
 └────────────────────────────┘
 ```
 
-**UX rationale:** DEP fields are optional and collapsed — not all animals have formal EPD data, and forcing it creates friction. Location uses GPS by default with municipality fallback (important for the tier-gated precision logic).
+**Species-aware dropdowns:** Raça and Sexo options change based on Espécie selection.
+- Bovino sexes: Touro, Vaca, Novilho, Novilha
+- Equino sexes: Garanhão, Égua, Potro, Potranca
+
+**UX rationale:** DEP fields are optional and collapsed — not all animals have formal EPD data, and forcing it creates friction. Location is a free-text municipality field (GPS integration is planned).
 
 ---
 
@@ -380,10 +565,54 @@ Only reachable for `Confirmado` matches. **This is where contact is revealed.**
 
 ---
 
+### 10. Edit Breeder Profile
+
+Reached from Screen 9 via the **[Editar]** button in the AppBar. Push navigation (not a tab).
+
+```
+┌────────────────────────────┐
+│  ←  Editar Perfil  [Salvar]│
+│                            │
+│        [Avatar]            │
+│         📷 (badge)         │
+│                            │
+│  DADOS PESSOAIS            │
+│  ┌──────────────────────┐  │
+│  │ 👤 Nome completo *   │  │
+│  └──────────────────────┘  │
+│  ┌──────────────────────┐  │
+│  │ 🏚 Nome da fazenda * │  │
+│  └──────────────────────┘  │
+│  ┌──────────────────────┐  │
+│  │ 📍 Localização *     │  │
+│  └──────────────────────┘  │
+│                            │
+│  ASSOCIAÇÃO                │
+│  ┌──────────────────────┐  │
+│  │ 🪪 Registro ABCZ     │  │
+│  └──────────────────────┘  │
+│  Usado para verificação    │
+│                            │
+│  [ Salvar alterações ]     │
+└────────────────────────────┘
+```
+
+Fields marked `*` are required — empty submit shows inline "Campo obrigatório" errors.
+
+On save: Riverpod state is updated in-memory, a snackbar "Perfil atualizado" appears, and the screen pops back to Screen 9, which reactively reflects the changes.
+
+Avatar circle shows a camera-badge overlay. Tapping it is a placeholder for `image_picker` upload (not yet wired to backend).
+
+Fields not editable here (plan, stats) are read-only on Screen 9 — they are server-driven.
+
+**UX rationale:** Separating view and edit keeps the profile screen clean. Saving and popping instead of navigating forward maintains the shallow stack expected on iOS.
+
+---
+
 ## Flutter Implementation Notes
 
 - Use **Material 3** (`useMaterial3: true`) with a custom `ColorScheme.fromSeed` seeded from `#2D5016`.
-- The discover card stack can be built with a `Stack` + `GestureDetector` + `Transform.rotate` for the swipe feel. Consider the [`flutter_card_swiper`](https://pub.dev/packages/flutter_card_swiper) package.
+- The discover card stack uses [`flutter_card_swiper`](https://pub.dev/packages/flutter_card_swiper) — already integrated.
 - Bottom nav: `NavigationBar` widget (Material 3), not the older `BottomNavigationBar`.
 - Map background on Discover: `flutter_map` (OpenStreetMap, no API key needed) or Google Maps. Use a low-opacity overlay so the card is the focus.
 - WhatsApp deeplink: `url_launcher` with `https://wa.me/55XXXXXXXXXXX`.

@@ -1,24 +1,27 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/animatch_logo.dart';
+import '../providers/auth_provider.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _cpfCnpjController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
 
@@ -26,16 +29,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _cpfCnpjController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: call auth repository
-      context.go(AppRoutes.discover);
+  Future<void> _signUp() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).signUp(
+            name: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+          );
+      if (!mounted) return;
+      context.go(AppRoutes.login);
+    } on DioException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Credenciais inválidas. Tente novamente.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro inesperado. Tente novamente.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -62,55 +82,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const AnimatchLogo(),
               const SizedBox(height: 32),
-              Text(
-                'Criar sua conta',
-                style: theme.textTheme.headlineSmall,
-              ),
+              Text('Criar sua conta', style: theme.textTheme.headlineSmall),
               const SizedBox(height: 8),
               Text(
                 'Acesse a maior rede de genética de elite do Brasil.',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.muted),
+                style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
               ),
               const SizedBox(height: 28),
 
-              // ── Nome completo ──────────────────────────────────────
+              // ── Nome completo ────────────────────────────────────────────────
               TextFormField(
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(labelText: 'Nome completo'),
                 validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
+                    (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
               ),
               const SizedBox(height: 16),
 
-              // ── E-mail ─────────────────────────────────────────────
+              // ── E-mail ───────────────────────────────────────────────────────
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(labelText: 'E-mail'),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Campo obrigatório';
+                  if (v == null || v.trim().isEmpty) return 'Campo obrigatório';
                   if (!v.contains('@')) return 'E-mail inválido';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // ── CPF / CNPJ ─────────────────────────────────────────
-              TextFormField(
-                controller: _cpfCnpjController,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'CPF ou CNPJ'),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // ── Senha ──────────────────────────────────────────────
+              // ── Senha ────────────────────────────────────────────────────────
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
@@ -136,12 +141,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── Confirmar senha ────────────────────────────────────
+              // ── Confirmar senha ──────────────────────────────────────────────
               TextFormField(
-                controller: _confirmPasswordController,
+                controller: _confirmController,
                 obscureText: _obscureConfirm,
                 textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _submit(),
+                onFieldSubmitted: (_) => _signUp(),
                 decoration: InputDecoration(
                   labelText: 'Confirmar senha',
                   suffixIcon: IconButton(
@@ -165,14 +170,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 28),
 
-              // ── Primary CTA ────────────────────────────────────────
+              // ── Primary CTA ──────────────────────────────────────────────────
               FilledButton(
-                onPressed: _submit,
-                child: const Text('Criar conta'),
+                onPressed: _isLoading ? null : _signUp,
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Criar conta'),
               ),
               const SizedBox(height: 16),
 
-              // ── Login link ─────────────────────────────────────────
+              // ── Login link ───────────────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -182,7 +196,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ?.copyWith(color: AppColors.muted),
                   ),
                   GestureDetector(
-                    onTap: () => context.go(AppRoutes.login),
+                    onTap: _isLoading ? null : () => context.go(AppRoutes.login),
                     child: Text(
                       'Entrar',
                       style: theme.textTheme.bodyMedium?.copyWith(

@@ -49,6 +49,9 @@ dependencies:
   # Image picker (animal photos)
   image_picker: ^1.1.2
 
+  # Local file storage (profile picture stub)
+  path_provider: ^2.1.4
+
   # Fonts
   google_fonts: ^6.2.1
 

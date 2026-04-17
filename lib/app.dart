@@ -14,7 +14,7 @@ class AnimatchApp extends ConsumerWidget {
       title: 'Animatch',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      routerConfig: appRouter,
+      routerConfig: ref.watch(routerProvider),
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],
       localizationsDelegates: const [
