@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/local/profile_picture_store.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../domain/breeder_profile.dart';
 import '../providers/profile_provider.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -110,7 +111,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
           children: [
             _AvatarSection(
-              picture: ref.watch(profilePictureProvider).valueOrNull,
+              picture: ref.watch(profilePictureProvider).value,
               onTap: _pickPhoto,
             ),
             const SizedBox(height: 28),
@@ -168,6 +169,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 28),
+            _SectionLabel('Plano'),
+            const SizedBox(height: 12),
+            _PlanCard(profile: ref.watch(profileProvider)),
             const SizedBox(height: 36),
             FilledButton(
               onPressed: _isLoading ? null : _save,
@@ -305,6 +310,67 @@ class _Field extends StatelessWidget {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+}
+
+// ─── Plan card ────────────────────────────────────────────────────────────────
+
+class _PlanCard extends StatelessWidget {
+  const _PlanCard({required this.profile});
+
+  final BreederProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD4A017),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                profile.plan,
+                style: theme.textTheme.bodyLarge
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Renova em ${profile.planRenewal}',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {},
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+              ),
+              child: const Text('Gerenciar plano'),
+            ),
+          ),
+        ],
       ),
     );
   }

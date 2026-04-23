@@ -1,34 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../herd/providers/selected_animal_provider.dart';
 import '../domain/match_item.dart';
+import '../providers/match_provider.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-class MatchesScreen extends StatelessWidget {
+class MatchesScreen extends ConsumerWidget {
   const MatchesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(selectedAnimalProvider);
+
+    if (selected == null) {
+      return Scaffold(
+        appBar: _appBar(context),
+        body: _NoAnimalSelected(),
+      );
+    }
+
+    final matchesAsync = ref.watch(matchesProvider(selected.id));
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Matches',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        itemCount: stubMatches.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) =>
-            _MatchCard(match: stubMatches[index]),
+      appBar: _appBar(context),
+      body: matchesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, _) => _ErrorState(),
+        data: (matches) {
+          if (matches.isEmpty) return _EmptyState();
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            itemCount: matches.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, index) =>
+                _MatchCard(match: matches[index]),
+          );
+        },
       ),
     );
   }
+
+  AppBar _appBar(BuildContext context) => AppBar(
+        title: Text('Matches', style: Theme.of(context).textTheme.titleLarge),
+      );
 }
 
 // ─── Match card ───────────────────────────────────────────────────────────────
@@ -53,18 +73,11 @@ class _MatchCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Their animal photo
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  match.theirAnimal.imagePath,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                ),
+                child: _animalPhoto(match.theirAnimal.imagePath, size: 80),
               ),
               const SizedBox(width: 14),
-              // Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +99,6 @@ class _MatchCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Time + chevron
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -99,11 +111,8 @@ class _MatchCard extends StatelessWidget {
                   ),
                   if (isConfirmed) ...[
                     const SizedBox(height: 8),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: AppColors.muted,
-                      size: 20,
-                    ),
+                    const Icon(Icons.chevron_right,
+                        color: AppColors.muted, size: 20),
                   ],
                 ],
               ),
@@ -113,6 +122,18 @@ class _MatchCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Widget _animalPhoto(String path, {required double size}) {
+  if (path.isNotEmpty) {
+    return Image.asset(path, width: size, height: size, fit: BoxFit.cover);
+  }
+  return Container(
+    width: size,
+    height: size,
+    color: AppColors.primary.withValues(alpha: 0.08),
+    child: Icon(Icons.pets, size: size * 0.45, color: AppColors.primary.withValues(alpha: 0.4)),
+  );
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -159,6 +180,103 @@ class _StatusBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Empty states ─────────────────────────────────────────────────────────────
+
+class _NoAnimalSelected extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.pets,
+                size: 64, color: AppColors.muted.withValues(alpha: 0.4)),
+            const SizedBox(height: 20),
+            Text('Escolha um animal',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(
+              'Vá para Meu Rebanho e selecione o animal para ver seus matches.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            FilledButton.icon(
+              onPressed: () => context.go(AppRoutes.herd),
+              icon: const Icon(Icons.format_list_bulleted_outlined),
+              label: const Text('Meu Rebanho'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.favorite_border_rounded,
+              size: 64, color: AppColors.muted.withValues(alpha: 0.4)),
+          const SizedBox(height: 16),
+          Text('Nenhum match ainda',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            'Continue explorando para encontrar pares.',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: AppColors.muted),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded,
+                size: 64, color: AppColors.muted.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
+            Text('Não foi possível carregar os matches',
+                style: Theme.of(context).textTheme.titleMedium,
+                textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(
+              'Verifique sua conexão e tente novamente.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

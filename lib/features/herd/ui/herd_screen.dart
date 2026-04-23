@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/herd_animal.dart';
+import '../providers/herd_provider.dart';
 import '../providers/selected_animal_provider.dart';
 
 const _freeLimit = 5;
@@ -17,7 +18,7 @@ class HerdScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(selectedAnimalProvider);
-    final count = stubHerdAnimals.length;
+    final animalsAsync = ref.watch(herdProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -30,33 +31,57 @@ class HerdScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        children: [
-          _SelectionBanner(selected: selected),
-          const SizedBox(height: 16),
-          _QuotaBar(count: count, limit: _freeLimit),
-          const SizedBox(height: 20),
-          ...List.generate(
-            stubHerdAnimals.length,
-            (i) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _AnimalCard(
-                animal: stubHerdAnimals[i],
-                isSelected: selected == stubHerdAnimals[i],
-                onTap: () => context.push(
-                  AppRoutes.myAnimalDetail,
-                  extra: stubHerdAnimals[i],
-                ),
-                onSelect: () {
-                  ref.read(selectedAnimalProvider.notifier).state =
-                      stubHerdAnimals[i];
-                  context.go(AppRoutes.discover);
-                },
+      body: animalsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              Text('Erro ao carregar animais',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: () => ref.invalidate(herdProvider),
+                child: const Text('Tentar novamente'),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
+        data: (animals) {
+          final count = animals.length;
+          return animals.isEmpty
+              ? _EmptyHerd(onAdd: () => context.push(AppRoutes.addAnimal))
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  children: [
+                    _SelectionBanner(selected: selected),
+                    const SizedBox(height: 16),
+                    _QuotaBar(count: count, limit: _freeLimit),
+                    const SizedBox(height: 20),
+                    ...animals.map(
+                      (animal) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _AnimalCard(
+                          animal: animal,
+                          isSelected: selected == animal,
+                          onTap: () => context.push(
+                            AppRoutes.myAnimalDetail,
+                            extra: animal.id,
+                          ),
+                          onSelect: () {
+                            ref
+                                .read(selectedAnimalProvider.notifier)
+                                .select(animal);
+                            context.go(AppRoutes.discover);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.addAnimal),
@@ -359,6 +384,54 @@ class _SelectButton extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: AppColors.primary,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+class _EmptyHerd extends StatelessWidget {
+  const _EmptyHerd({required this.onAdd});
+
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.pets_outlined,
+              size: 64,
+              color: AppColors.primary.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Nenhum animal cadastrado',
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Adicione seu primeiro animal para começar a buscar o par ideal.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.muted,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Adicionar animal'),
+            ),
+          ],
         ),
       ),
     );

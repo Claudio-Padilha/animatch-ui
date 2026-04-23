@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../../../shared/widgets/circle_action_button.dart';
-import 'discover_screen.dart';
+import '../domain/discover_animal.dart';
 
 class AnimalDetailScreen extends StatefulWidget {
   const AnimalDetailScreen({super.key, required this.animal});
@@ -136,6 +137,23 @@ class _PhotoHeader extends StatelessWidget {
   final PageController pageController;
   final ValueChanged<int> onPageChanged;
 
+  Widget _animalPhoto(String path) {
+    if (path.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: path,
+        fit: BoxFit.contain,
+        width: double.infinity,
+        placeholder: (_, _) => const ColoredBox(color: Colors.black26),
+        errorWidget: (_, _, _) => const Icon(
+          Icons.broken_image_outlined,
+          color: Colors.white30,
+          size: 48,
+        ),
+      );
+    }
+    return Image.asset(path, fit: BoxFit.contain, width: double.infinity);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SliverToBoxAdapter(
@@ -149,11 +167,7 @@ class _PhotoHeader extends StatelessWidget {
               itemCount: animal.imagePaths.length,
               itemBuilder: (_, i) => Container(
                 color: Colors.black,
-                child: Image.asset(
-                  animal.imagePaths[i],
-                  fit: BoxFit.contain,
-                  width: double.infinity,
-                ),
+                child: _animalPhoto(animal.imagePaths[i]),
               ),
             ),
             if (animal.imagePaths.length > 1)

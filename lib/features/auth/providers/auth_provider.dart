@@ -5,9 +5,16 @@ import '../../../core/network/api_client.dart';
 import '../data/auth_repository.dart';
 import '../domain/breeder.dart';
 
-// Holds the current Bearer token. Set by AuthNotifier from the logged-in
-// breeder via DevTokenService; cleared on logout.
-final accessTokenProvider = StateProvider<String?>((ref) => null);
+// Holds the current Bearer token. Set by AuthNotifier; cleared on logout.
+class _AccessTokenNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? token) => state = token;
+}
+
+final accessTokenProvider =
+    NotifierProvider<_AccessTokenNotifier, String?>(_AccessTokenNotifier.new);
 
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepository(ref.watch(dioProvider)),
@@ -15,16 +22,15 @@ final authRepositoryProvider = Provider<AuthRepository>(
 
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
-class AuthNotifier extends StateNotifier<Breeder?> {
-  AuthNotifier(this._repository, this._ref) : super(null);
+class AuthNotifier extends Notifier<Breeder?> {
+  @override
+  Breeder? build() => null;
 
-  final AuthRepository _repository;
-  final Ref _ref;
+  AuthRepository get _repository => ref.read(authRepositoryProvider);
 
   Future<void> login({required String email}) async {
     final breeder = await _repository.login(email: email, name: state?.name);
-    _ref.read(accessTokenProvider.notifier).state =
-        DevTokenService.buildToken(breeder);
+    ref.read(accessTokenProvider.notifier).set(DevTokenService.buildToken(breeder));
     state = breeder;
   }
 
@@ -33,17 +39,15 @@ class AuthNotifier extends StateNotifier<Breeder?> {
   }
 
   void updateBreeder(Breeder breeder) {
-    _ref.read(accessTokenProvider.notifier).state =
-        DevTokenService.buildToken(breeder);
+    ref.read(accessTokenProvider.notifier).set(DevTokenService.buildToken(breeder));
     state = breeder;
   }
 
   void logout() {
-    _ref.read(accessTokenProvider.notifier).state = null;
+    ref.read(accessTokenProvider.notifier).set(null);
     state = null;
   }
 }
 
-final authNotifierProvider = StateNotifierProvider<AuthNotifier, Breeder?>(
-  (ref) => AuthNotifier(ref.watch(authRepositoryProvider), ref),
-);
+final authNotifierProvider =
+    NotifierProvider<AuthNotifier, Breeder?>(AuthNotifier.new);

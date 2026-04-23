@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/breeder_associations_card.dart';
 import '../domain/breeder_profile.dart';
 import '../providers/profile_provider.dart';
 
@@ -38,9 +39,7 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           _HeaderCard(profile: profile),
           const SizedBox(height: 16),
-          _PlanCard(profile: profile),
-          const SizedBox(height: 16),
-          _StatsCard(profile: profile),
+          const _StatsCard(),
           const SizedBox(height: 32),
           _SignOutButton(),
         ],
@@ -142,10 +141,6 @@ class _HeaderCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (profile.associationId.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(profile.associationId, style: theme.textTheme.bodySmall),
-                  ],
                   if (profile.location.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Row(
@@ -156,6 +151,12 @@ class _HeaderCard extends StatelessWidget {
                         Text(profile.location, style: theme.textTheme.bodySmall),
                       ],
                     ),
+                  ],
+                  if (profile.associations.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    BreederAssociationsList(associations: profile.associations),
                   ],
                 ],
               ),
@@ -168,82 +169,15 @@ class _HeaderCard extends StatelessWidget {
   }
 }
 
-// ─── Plan card ────────────────────────────────────────────────────────────────
-
-class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.profile});
-
-  final BreederProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Plano', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 14),
-
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD4A017),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                profile.plan,
-                style: theme.textTheme.bodyLarge
-                    ?.copyWith(fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          Text(
-            'Renova em ${profile.planRenewal}',
-            style: theme.textTheme.bodySmall,
-          ),
-          const SizedBox(height: 16),
-
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(44),
-              ),
-              child: const Text('Gerenciar plano'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ─── Stats card ───────────────────────────────────────────────────────────────
 
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.profile});
-
-  final BreederProfile profile;
+class _StatsCard extends ConsumerWidget {
+  const _StatsCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final stats = ref.watch(breederStatisticsProvider);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -257,22 +191,35 @@ class _StatsCard extends StatelessWidget {
         children: [
           Text('Estatísticas', style: theme.textTheme.titleSmall),
           const SizedBox(height: 16),
-          _StatRow(
-            icon: Icons.pets,
-            label: 'Animais cadastrados',
-            value: '${profile.statsAnimals}',
-          ),
-          const Divider(height: 24),
-          _StatRow(
-            icon: Icons.favorite_rounded,
-            label: 'Matches confirmados',
-            value: '${profile.statsMatches}',
-          ),
-          const Divider(height: 24),
-          _StatRow(
-            icon: Icons.thumb_up_rounded,
-            label: 'Curtidas recebidas',
-            value: '${profile.statsLikes}',
+          stats.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            error: (_, _) => const Text('Não foi possível carregar estatísticas.'),
+            data: (s) => Column(
+              children: [
+                _StatRow(
+                  icon: Icons.pets,
+                  label: 'Animais ativos',
+                  value: '${s.activeAnimals}',
+                ),
+                const Divider(height: 24),
+                _StatRow(
+                  icon: Icons.favorite_rounded,
+                  label: 'Matches confirmados',
+                  value: '${s.breederMatches}',
+                ),
+                const Divider(height: 24),
+                _StatRow(
+                  icon: Icons.thumb_up_rounded,
+                  label: 'Curtidas recebidas',
+                  value: '${s.likes}',
+                ),
+              ],
+            ),
           ),
         ],
       ),

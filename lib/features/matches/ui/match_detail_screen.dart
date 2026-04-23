@@ -7,6 +7,22 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/match_item.dart';
 
+Widget _animalPhoto(String path, {required double size}) {
+  if (path.isNotEmpty) {
+    return Image.asset(path, width: size, height: size, fit: BoxFit.cover);
+  }
+  return Container(
+    width: size,
+    height: size,
+    color: AppColors.primary.withValues(alpha: 0.08),
+    child: Icon(
+      Icons.pets,
+      size: size * 0.45,
+      color: AppColors.primary.withValues(alpha: 0.4),
+    ),
+  );
+}
+
 class MatchDetailScreen extends StatelessWidget {
   const MatchDetailScreen({super.key, required this.match});
 
@@ -91,12 +107,7 @@ class _AnimalPhotoWithName extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.asset(
-              animal.imagePath,
-              width: 120,
-              height: 120,
-              fit: BoxFit.cover,
-            ),
+            child: _animalPhoto(animal.imagePath, size: 120),
           ),
           const SizedBox(height: 8),
           Text(

@@ -10,18 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/local/profile_picture_store.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/domain/breeder_association.dart';
+import '../../../shared/widgets/associations_picker.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
-
-// ─── Associations ─────────────────────────────────────────────────────────────
-
-const _associations = [
-  'ABCZ',
-  'ABQM',
-  'ABCCrioulo',
-  'ABCAngus',
-  'ABCCMM',
-];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +29,7 @@ class _ProfileVerificationScreenState
     extends ConsumerState<ProfileVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  String? _association;
+  List<BreederAssociation> _associations = [];
   final _name = TextEditingController();
   final _farmName = TextEditingController();
   final _phone = TextEditingController();
@@ -87,8 +79,8 @@ class _ProfileVerificationScreenState
             phone: _phone.text.trim(),
             cpf: _cpf.text.trim().isEmpty ? null : _cpf.text.trim(),
             farmName: _farmName.text.trim().isEmpty ? null : _farmName.text.trim(),
-            associationId: _association,
-            pictureUrl: ref.read(profilePictureProvider).valueOrNull?.path,
+            associations: _associations,
+            pictureUrl: ref.read(profilePictureProvider).value?.path,
             directions: _street.text.trim(),
             zipCode: _zip.text.trim(),
             city: _city.text.trim(),
@@ -114,7 +106,7 @@ class _ProfileVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final picture = ref.watch(profilePictureProvider).valueOrNull;
+    final picture = ref.watch(profilePictureProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Verificar Perfil')),
@@ -198,26 +190,10 @@ class _ProfileVerificationScreenState
             validator: _required,
           ),
           const SizedBox(height: 28),
-          _SectionLabel('Associação'),
+          _SectionLabel('Associações'),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _association,
-              decoration: InputDecoration(
-                labelText: 'Associação',
-                prefixIcon: const Icon(Icons.badge_outlined, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
-              items: _associations
-                  .map((a) => DropdownMenuItem(value: a, child: Text(a)))
-                  .toList(),
-              onChanged: (v) => setState(() => _association = v),
-              validator: null,
+            AssociationsPicker(
+              onChanged: (list) => setState(() => _associations = list),
             ),
             const SizedBox(height: 28),
             _SectionLabel('CPF'),

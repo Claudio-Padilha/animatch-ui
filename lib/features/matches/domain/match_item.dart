@@ -1,10 +1,13 @@
+import '../../herd/domain/animal_enums.dart';
+
 enum MatchStatus { confirmado, pendente }
 
 class MatchAnimal {
   const MatchAnimal({
+    this.id,
     required this.name,
     required this.breed,
-    required this.imagePath,
+    this.imagePath = '',
     this.age,
     this.score,
     this.registry,
@@ -13,21 +16,44 @@ class MatchAnimal {
     this.location,
   });
 
+  final String? id;
   final String name;
-  final String breed; // e.g. "Nelore · Touro"
+  final String breed; // e.g. "Nelore · Macho"
   final String imagePath;
-  final int? age; // anos
-  final int? score; // 0–100
-  final String? registry; // e.g. "ABCZ: 4521-MG"
-  final double? depPeso; // DEP Peso Desmame
-  final double? depConf; // DEP Conformação
-  final String? location; // e.g. "Triângulo Mineiro, MG"
+  final int? age;
+  final int? score;
+  final String? registry;
+  final double? depPeso;
+  final double? depConf;
+  final String? location;
+
+  factory MatchAnimal.fromJson(Map<String, dynamic> json) {
+    final breedApiValue = json['breed'] as String? ?? '';
+    String breedLabel;
+    try {
+      breedLabel = AnimalBreed.fromApiValue(breedApiValue).label;
+    } catch (_) {
+      breedLabel = breedApiValue;
+    }
+
+    final sexRaw = json['sex'] as String? ?? 'male';
+    final sexLabel = sexRaw == 'male' ? 'Macho' : 'Fêmea';
+
+    return MatchAnimal(
+      id: json['id'] as String?,
+      name: json['name'] as String,
+      breed: '$breedLabel · $sexLabel',
+      age: (json['age'] as num?)?.toInt(),
+      score: (json['qualityScore'] as num?)?.toInt(),
+      registry: json['registrationNumber'] as String?,
+    );
+  }
 }
 
 class MatchContact {
   const MatchContact({
     required this.breederName,
-    required this.phone, // digits only, no country code — used for Ligar/WhatsApp
+    required this.phone,
     this.email,
     this.website,
   });
@@ -51,112 +77,40 @@ class MatchItem {
   final String id;
   final MatchStatus status;
   final String timeLabel;
-
   final MatchAnimal yourAnimal;
   final MatchAnimal theirAnimal;
-
   final MatchContact contact;
+
+  factory MatchItem.fromJson(
+    Map<String, dynamic> json, {
+    required String animalId,
+  }) {
+    final first =
+        MatchAnimal.fromJson(json['firstAnimal'] as Map<String, dynamic>);
+    final second =
+        MatchAnimal.fromJson(json['secondAnimal'] as Map<String, dynamic>);
+
+    final yours = first.id == animalId ? first : second;
+    final theirs = first.id == animalId ? second : first;
+
+    return MatchItem(
+      id: json['id'] as String,
+      status: _statusFrom(json['status'] as String),
+      timeLabel: _timeLabelFrom(json['createdAt'] as String),
+      yourAnimal: yours,
+      theirAnimal: theirs,
+      contact: const MatchContact(breederName: '', phone: ''),
+    );
+  }
+
+  static MatchStatus _statusFrom(String s) =>
+      s == 'confirmed' ? MatchStatus.confirmado : MatchStatus.pendente;
+
+  static String _timeLabelFrom(String createdAt) {
+    final dt = DateTime.tryParse(createdAt)?.toLocal() ?? DateTime.now();
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays == 0) return 'Hoje';
+    if (diff.inDays == 1) return '1 dia atrás';
+    return '${diff.inDays} dias atrás';
+  }
 }
-
-// ─── Stub data ────────────────────────────────────────────────────────────────
-
-const stubMatches = [
-  MatchItem(
-    id: 'm1',
-    status: MatchStatus.confirmado,
-    timeLabel: '2 dias atrás',
-    yourAnimal: MatchAnimal(
-      name: 'Imperador da Serra',
-      breed: 'Nelore · Touro',
-      imagePath: 'assets/images/bovino1.jpg',
-      age: 4,
-      score: 87,
-      registry: 'ABCZ: 4521-MG',
-      depPeso: 12.4,
-      depConf: 8.1,
-      location: 'Triângulo Mineiro, MG',
-    ),
-    theirAnimal: MatchAnimal(
-      name: 'Estrela Real',
-      breed: 'Nelore · Vaca',
-      imagePath: 'assets/images/bovino3.jpeg',
-      age: 3,
-      score: 91,
-      registry: 'ABCZ: 7834-GO',
-      depPeso: 14.2,
-      depConf: 9.5,
-      location: 'Sul Goiano, GO',
-    ),
-    contact: MatchContact(
-      breederName: 'João Mendonça',
-      phone: '34991234567',
-      email: 'joao@fazendaxyz.com.br',
-      website: 'fazendaxyz.com.br',
-    ),
-  ),
-  MatchItem(
-    id: 'm2',
-    status: MatchStatus.pendente,
-    timeLabel: 'Hoje',
-    yourAnimal: MatchAnimal(
-      name: 'Sultão do Cerrado',
-      breed: 'Nelore · Touro',
-      imagePath: 'assets/images/bovino2.jpeg',
-      age: 5,
-      score: 79,
-      registry: 'ABCZ: 3312-MT',
-      depPeso: 9.7,
-      depConf: 6.3,
-      location: 'Médio-Norte, MT',
-    ),
-    theirAnimal: MatchAnimal(
-      name: 'Lua Nova',
-      breed: 'Nelore · Vaca',
-      imagePath: 'assets/images/bovino5.jpeg',
-      age: 4,
-      score: 85,
-      registry: 'ABCZ: 5519-MS',
-      depPeso: 11.8,
-      depConf: 7.9,
-      location: 'Pantanal, MS',
-    ),
-    contact: MatchContact(
-      breederName: 'Maria Fernandes',
-      phone: '62987654321',
-      email: 'maria@fazendanova.com.br',
-    ),
-  ),
-  MatchItem(
-    id: 'm3',
-    status: MatchStatus.confirmado,
-    timeLabel: '5 dias atrás',
-    yourAnimal: MatchAnimal(
-      name: 'Dom Carlos',
-      breed: 'Nelore · Touro',
-      imagePath: 'assets/images/bovino2.jpeg',
-      age: 6,
-      score: 72,
-      registry: 'ABCZ: 2201-MS',
-      depPeso: 7.5,
-      depConf: 5.2,
-      location: 'Pantanal, MS',
-    ),
-    theirAnimal: MatchAnimal(
-      name: 'Trovoada da Serra',
-      breed: 'Nelore · Vaca',
-      imagePath: 'assets/images/bovino4.jpeg',
-      age: 4,
-      score: 88,
-      registry: 'ABCZ: 6643-PR',
-      depPeso: 13.1,
-      depConf: 8.7,
-      location: 'Norte Pioneiro, PR',
-    ),
-    contact: MatchContact(
-      breederName: 'Pedro Albuquerque',
-      phone: '67996543210',
-      email: 'pedro@rebanhoalbuquerque.com.br',
-      website: 'rebanhoalbuquerque.com.br',
-    ),
-  ),
-];

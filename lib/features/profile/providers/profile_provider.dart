@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../shared/domain/association.dart';
+import '../../../shared/domain/breeder_association.dart';
 import '../../auth/domain/breeder.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/profile_repository.dart';
 import '../domain/breeder_profile.dart';
+import '../domain/breeder_statistics.dart';
 
 final profileRepositoryProvider = Provider<ProfileRepository>(
   (ref) => ProfileRepository(ref.watch(dioProvider)),
@@ -24,6 +27,7 @@ class ProfileNotifier extends Notifier<BreederProfile> {
       state: breeder.state ?? '',
       status: breeder.status,
       associationId: breeder.associationId ?? '',
+      associations: breeder.associations,
     );
   }
 
@@ -32,19 +36,21 @@ class ProfileNotifier extends Notifier<BreederProfile> {
     required String phone,
     String? cpf,
     String? farmName,
-    String? associationId,
+    List<BreederAssociation> associations = const [],
     String? pictureUrl,
     required String directions,
     required String zipCode,
     required String city,
     required String state,
   }) async {
+    final breederId = ref.read(authNotifierProvider)!.id;
     final updated = await ref.read(profileRepositoryProvider).activate(
+          breederId: breederId,
           name: name,
           phone: phone,
           cpf: cpf,
           farmName: farmName,
-          associationId: associationId,
+          associations: associations,
           pictureUrl: pictureUrl,
           directions: directions,
           zipCode: zipCode,
@@ -88,3 +94,18 @@ class ProfileNotifier extends Notifier<BreederProfile> {
 
 final profileProvider =
     NotifierProvider<ProfileNotifier, BreederProfile>(ProfileNotifier.new);
+
+class BreederStatisticsNotifier
+    extends AsyncNotifier<BreederStatistics> {
+  @override
+  Future<BreederStatistics> build() =>
+      ref.read(profileRepositoryProvider).getStatistics();
+}
+
+final breederStatisticsProvider =
+    AsyncNotifierProvider<BreederStatisticsNotifier, BreederStatistics>(
+        BreederStatisticsNotifier.new);
+
+final associationsProvider = FutureProvider<List<Association>>(
+  (ref) => ref.read(profileRepositoryProvider).getAssociations(),
+);

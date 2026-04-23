@@ -1,3 +1,4 @@
+import '../../../shared/domain/breeder_association.dart';
 import '../../auth/domain/breeder.dart';
 
 class BreederProfile {
@@ -10,11 +11,9 @@ class BreederProfile {
     required this.state,
     required this.status,
     required this.associationId,
+    this.associations = const [],
     required this.plan,
     required this.planRenewal,
-    required this.statsAnimals,
-    required this.statsMatches,
-    required this.statsLikes,
   });
 
   final String name;
@@ -25,13 +24,11 @@ class BreederProfile {
   final String state;
   final BreederStatus status;
   final String associationId;
+  final List<BreederAssociation> associations;
 
   bool get isActive => status == BreederStatus.active;
   final String plan;
   final String planRenewal;
-  final int statsAnimals;
-  final int statsMatches;
-  final int statsLikes;
 
   String get location =>
       (city.isNotEmpty && state.isNotEmpty) ? '$city, $state' : '';
@@ -45,11 +42,9 @@ class BreederProfile {
     String? state,
     BreederStatus? status,
     String? associationId,
+    List<BreederAssociation>? associations,
     String? plan,
     String? planRenewal,
-    int? statsAnimals,
-    int? statsMatches,
-    int? statsLikes,
   }) {
     return BreederProfile(
       name: name ?? this.name,
@@ -60,11 +55,9 @@ class BreederProfile {
       state: state ?? this.state,
       status: status ?? this.status,
       associationId: associationId ?? this.associationId,
+      associations: associations ?? this.associations,
       plan: plan ?? this.plan,
       planRenewal: planRenewal ?? this.planRenewal,
-      statsAnimals: statsAnimals ?? this.statsAnimals,
-      statsMatches: statsMatches ?? this.statsMatches,
-      statsLikes: statsLikes ?? this.statsLikes,
     );
   }
 }
@@ -80,7 +73,4 @@ const stubProfile = BreederProfile(
   associationId: '',
   plan: 'Premium Individual',
   planRenewal: '14/08/2026',
-  statsAnimals: 12,
-  statsMatches: 8,
-  statsLikes: 34,
 );

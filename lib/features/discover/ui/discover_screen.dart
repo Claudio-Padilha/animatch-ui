@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,122 +11,9 @@ import '../../../shared/domain/distance_range.dart';
 import '../../../shared/widgets/circle_action_button.dart';
 import '../../../shared/widgets/filter_dropdown.dart';
 import '../../herd/providers/selected_animal_provider.dart';
-
-// ─── Stub model ───────────────────────────────────────────────────────────────
-
-class DiscoverAnimal {
-  const DiscoverAnimal({
-    required this.name,
-    required this.breed,
-    required this.sex,
-    required this.age,
-    required this.score,
-    required this.distanceLabel,
-    required this.locationFull,
-    required this.breederName,
-    required this.isVerified,
-    required this.imagePaths,
-    required this.depWeight,
-    required this.depConf,
-    required this.registrationCode,
-  });
-
-  final String name;
-  final String breed;
-  final String sex;
-  final String age;
-  final int score;
-  final String distanceLabel;
-  final String locationFull;
-  final String breederName;
-  final bool isVerified;
-  final List<String> imagePaths;
-  final double depWeight;
-  final double depConf;
-  final String registrationCode;
-}
-
-final _stubAnimals = [
-  DiscoverAnimal(
-    name: 'Imperador da Serra',
-    breed: 'Nelore',
-    sex: 'Touro',
-    age: '4 anos',
-    score: 87,
-    distanceLabel: '~340 km · MG',
-    locationFull: 'Triângulo Mineiro, MG',
-    breederName: 'João Mendonça',
-    isVerified: true,
-    imagePaths: [
-      'assets/images/bovino1.jpg',
-      'assets/images/bovino1_1.jpg',
-      'assets/images/bovino1_2.jpg',
-    ],
-    depWeight: 12.4,
-    depConf: 8.1,
-    registrationCode: 'ABCZ: 4521-MG',
-  ),
-  DiscoverAnimal(
-    name: 'Sultão do Cerrado',
-    breed: 'Nelore',
-    sex: 'Touro',
-    age: '5 anos',
-    score: 91,
-    distanceLabel: '~210 km · GO',
-    locationFull: 'Sul Goiano, GO',
-    breederName: 'Fazenda Boa Vista',
-    isVerified: true,
-    imagePaths: ['assets/images/bovino2.jpeg'],
-    depWeight: 15.2,
-    depConf: 10.3,
-    registrationCode: 'ABCZ: 8834-GO',
-  ),
-  DiscoverAnimal(
-    name: 'Baronesa Real',
-    breed: 'Nelore',
-    sex: 'Vaca',
-    age: '3 anos',
-    score: 79,
-    distanceLabel: '~480 km · MS',
-    locationFull: 'Campo Grande, MS',
-    breederName: 'Agropecuária Estrela',
-    isVerified: false,
-    imagePaths: ['assets/images/bovino3.jpeg'],
-    depWeight: 8.7,
-    depConf: 5.9,
-    registrationCode: 'ABCZ: 2210-MS',
-  ),
-  DiscoverAnimal(
-    name: 'Trovoada da Serra',
-    breed: 'Nelore',
-    sex: 'Vaca',
-    age: '4 anos',
-    score: 84,
-    distanceLabel: '~155 km · SP',
-    locationFull: 'Noroeste Paulista, SP',
-    breederName: 'Fazenda Horizonte',
-    isVerified: true,
-    imagePaths: ['assets/images/bovino4.jpeg'],
-    depWeight: 10.1,
-    depConf: 7.4,
-    registrationCode: 'ABCZ: 6612-SP',
-  ),
-  DiscoverAnimal(
-    name: 'Monarca do Planalto',
-    breed: 'Nelore',
-    sex: 'Touro',
-    age: '6 anos',
-    score: 95,
-    distanceLabel: '~620 km · MT',
-    locationFull: 'Planalto Central, MT',
-    breederName: 'Agro Santa Clara',
-    isVerified: true,
-    imagePaths: ['assets/images/bovino5.jpeg'],
-    depWeight: 18.6,
-    depConf: 13.2,
-    registrationCode: 'ABCZ: 9901-MT',
-  ),
-];
+import '../domain/discover_animal.dart';
+import '../providers/discover_provider.dart';
+import '../../matches/providers/match_provider.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -138,18 +26,11 @@ class DiscoverScreen extends ConsumerStatefulWidget {
 
 class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   final _controller = CardSwiperController();
-  bool _isEmpty = false;
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  void _onSwipe(int oldIndex, int? newIndex, CardSwiperDirection direction) {
-    setState(() {
-      if (newIndex == null) _isEmpty = true;
-    });
   }
 
   @override
@@ -164,6 +45,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       );
     }
 
+    final suggestionsAsync = ref.watch(suggestionsProvider(selected.id));
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: _buildAppBar(context),
@@ -172,9 +55,22 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           _SelectedAnimalBanner(animalName: selected.name),
           _FilterBar(),
           Expanded(
-            child: _isEmpty ? _EmptyState() : _buildSwiper(),
+            child: suggestionsAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (_, _) => _ErrorState(),
+              data: (animals) {
+                if (animals.isEmpty) return const _NoSuggestions();
+                return _buildSwiper(animals, selected.id);
+              },
+            ),
           ),
-          if (!_isEmpty) _ActionButtons(controller: _controller),
+          suggestionsAsync.maybeWhen(
+            data: (animals) => animals.isNotEmpty
+                ? _ActionButtons(controller: _controller)
+                : const SizedBox.shrink(),
+            orElse: () => const SizedBox.shrink(),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -206,31 +102,79 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     );
   }
 
-  Widget _buildSwiper() {
+  Widget _buildSwiper(List<DiscoverAnimal> animals, String selectedAnimalId) {
     return CardSwiper(
       controller: _controller,
-      cardsCount: _stubAnimals.length,
+      cardsCount: animals.length,
+      numberOfCardsDisplayed: animals.length.clamp(1, 2),
+      allowedSwipeDirection: const AllowedSwipeDirection.none(),
       onSwipe: (oldIndex, newIndex, direction) {
-        _onSwipe(oldIndex, newIndex, direction);
+        if (newIndex == null) {
+          ref.invalidate(suggestionsProvider(selectedAnimalId));
+        }
+        if (direction == CardSwiperDirection.right) {
+          _onLike(animals[oldIndex], selectedAnimalId);
+        } else if (direction == CardSwiperDirection.left) {
+          _onReject(animals[oldIndex], selectedAnimalId);
+        }
         return true;
       },
       maxAngle: 20,
       scale: 0.92,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      cardBuilder: (context, index, horizontalOffsetPercentage, verticalOffsetPercentage) {
-        return _AnimalSwipeCard(
-          animal: _stubAnimals[index],
-          onTap: () => context.push(AppRoutes.animalDetail, extra: _stubAnimals[index]),
-        );
-      },
+      cardBuilder: (context, index, _, _) => _AnimalSwipeCard(
+        animal: animals[index],
+        onTap: () =>
+            context.push(AppRoutes.animalDetail, extra: animals[index]),
+      ),
     );
+  }
+
+  void _onReject(DiscoverAnimal animal, String selectedAnimalId) {
+    final repo = ref.read(matchRepositoryProvider);
+    final future = animal.pendingMatchId != null
+        ? repo.rejectMatch(animal.pendingMatchId!)
+        : repo.createMatch(
+            firstLikeAnimalId: selectedAnimalId,
+            secondLikeAnimalId: animal.id,
+            status: 'rejected',
+          );
+    future.catchError((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível registrar a rejeição. Tente novamente.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
+  }
+
+  void _onLike(DiscoverAnimal animal, String selectedAnimalId) {
+    final repo = ref.read(matchRepositoryProvider);
+    final future = animal.pendingMatchId != null
+        ? repo.confirmMatch(animal.pendingMatchId!)
+        : repo.createMatch(
+            firstLikeAnimalId: selectedAnimalId,
+            secondLikeAnimalId: animal.id,
+          );
+    future.catchError((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não foi possível registrar o like. Tente novamente.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
   }
 }
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
 
-final _distanceOptions =
-    DistanceRange.values.map((e) => e.label).toList();
+final _distanceOptions = DistanceRange.values.map((e) => e.label).toList();
 
 class _FilterBar extends StatefulWidget {
   @override
@@ -266,112 +210,125 @@ class _AnimalSwipeCard extends StatelessWidget {
   final DiscoverAnimal animal;
   final VoidCallback onTap;
 
+  Widget _photo(String path) {
+    if (path.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: path,
+        fit: BoxFit.contain,
+        placeholder: (_, _) => const ColoredBox(color: Colors.black26),
+        errorWidget: (_, _, _) => const Icon(
+          Icons.broken_image_outlined,
+          color: Colors.white30,
+          size: 48,
+        ),
+      );
+    }
+    return Image.asset(path, fit: BoxFit.contain);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox.expand(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Dark background so letterbox bars look intentional
-            const ColoredBox(color: Colors.black),
-            // Photo — contain so the full animal is always visible
-            Image.asset(
-              animal.imagePaths.first,
-              fit: BoxFit.contain,
-            ),
-            // Gradient overlay at the bottom
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.center,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black87],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Colors.black),
+              animal.imagePaths.isNotEmpty
+                  ? _photo(animal.imagePaths.first)
+                  : const Icon(Icons.pets, color: Colors.white30, size: 64),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.center,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black87],
+                  ),
                 ),
               ),
-            ),
-          // Content at the bottom
-          Align(
-            alignment: Alignment.bottomLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Quality badge
-                  _ScoreBadge(score: animal.score),
-                  const SizedBox(height: 10),
-                  // Name
-                  Text(
-                    animal.name,
-                    style: GoogleFonts.merriweather(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Breed · Sex
-                  Text(
-                    '${animal.breed} · ${animal.sex}',
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Distance
-                  Row(
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on_outlined, color: Colors.white70, size: 15),
-                      const SizedBox(width: 4),
+                      _ScoreBadge(score: animal.score),
+                      const SizedBox(height: 10),
                       Text(
-                        animal.distanceLabel,
-                        style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  // Breeder
-                  Row(
-                    children: [
-                      const Icon(Icons.person_outline, color: Colors.white70, size: 15),
-                      const SizedBox(width: 4),
-                      Text(
-                        animal.breederName,
-                        style: GoogleFonts.inter(fontSize: 13, color: Colors.white70),
-                      ),
-                      if (animal.isVerified) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.verifiedBadge,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            'Verificado',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                        animal.name,
+                        style: GoogleFonts.merriweather(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${animal.breed} · ${animal.sex}',
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (animal.distanceLabel.isNotEmpty)
+                        Row(
+                          children: [
+                            const Icon(Icons.location_on_outlined,
+                                color: Colors.white70, size: 15),
+                            const SizedBox(width: 4),
+                            Text(
+                              animal.distanceLabel,
+                              style: GoogleFonts.inter(
+                                  fontSize: 13, color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 6),
+                      if (animal.breederName.isNotEmpty)
+                        Row(
+                          children: [
+                            const Icon(Icons.person_outline,
+                                color: Colors.white70, size: 15),
+                            const SizedBox(width: 4),
+                            Text(
+                              animal.breederName,
+                              style: GoogleFonts.inter(
+                                  fontSize: 13, color: Colors.white70),
+                            ),
+                            if (animal.isVerified) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.verifiedBadge,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  'Verificado',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-      ),
+        ),
       ),
     );
   }
@@ -431,7 +388,6 @@ class _ActionButtons extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Pass
           CircleActionButton(
             onTap: () => controller.swipe(CardSwiperDirection.left),
             icon: Icons.close_rounded,
@@ -441,7 +397,6 @@ class _ActionButtons extends StatelessWidget {
             iconSize: 30,
             label: 'Passar',
           ),
-          // Like
           CircleActionButton(
             onTap: () => controller.swipe(CardSwiperDirection.right),
             icon: Icons.favorite_rounded,
@@ -506,7 +461,7 @@ class _SelectedAnimalBanner extends StatelessWidget {
   }
 }
 
-// ─── No animal selected state ─────────────────────────────────────────────────
+// ─── No animal selected ───────────────────────────────────────────────────────
 
 class _NoAnimalSelected extends StatelessWidget {
   @override
@@ -531,9 +486,10 @@ class _NoAnimalSelected extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Vá para Meu Rebanho e selecione o animal que você quer parear.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.muted,
-                  ),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.muted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
@@ -549,28 +505,76 @@ class _NoAnimalSelected extends StatelessWidget {
   }
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+// ─── No suggestions state ─────────────────────────────────────────────────────
 
-class _EmptyState extends StatelessWidget {
+class _NoSuggestions extends StatelessWidget {
+  const _NoSuggestions();
+
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.search_off_rounded, size: 64, color: AppColors.muted.withValues(alpha: 0.5)),
-          const SizedBox(height: 16),
-          Text(
-            'Nenhum animal por aqui',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tente ajustar os filtros ou volte mais tarde.',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 64,
+              color: AppColors.muted.withValues(alpha: 0.4),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Sem sugestões de match no momento',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Volte mais tarde ou tente selecionar outro animal.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Error state ──────────────────────────────────────────────────────────────
+
+class _ErrorState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded,
+                size: 64, color: AppColors.muted.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
+            Text(
+              'Não foi possível carregar sugestões',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Verifique sua conexão e tente novamente.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

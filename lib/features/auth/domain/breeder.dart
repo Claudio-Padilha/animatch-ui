@@ -1,5 +1,7 @@
 // TODO: migrate to freezed + json_serializable once the API contract is stable
 
+import '../../../shared/domain/breeder_association.dart';
+
 enum BreederStatus {
   pending,
   active,
@@ -23,6 +25,7 @@ class Breeder {
     this.city,
     this.state,
     this.associationId,
+    this.associations = const [],
     this.status = BreederStatus.pending,
   });
 
@@ -35,6 +38,7 @@ class Breeder {
   final String? city;
   final String? state;
   final String? associationId;
+  final List<BreederAssociation> associations;
   final BreederStatus status;
 
   bool get verifiedBreeder => status == BreederStatus.active;
@@ -49,6 +53,9 @@ class Breeder {
         city: json['city'] as String?,
         state: json['state'] as String?,
         associationId: json['associationId'] as String?,
+        associations: (json['associations'] as List<dynamic>? ?? [])
+            .map((e) => BreederAssociation.fromJson(e as Map<String, dynamic>))
+            .toList(),
         status: BreederStatus.fromJson(json['profileStatus'] as String?),
       );
 
@@ -59,6 +66,7 @@ class Breeder {
     String? city,
     String? state,
     String? associationId,
+    List<BreederAssociation>? associations,
     String? avatarUrl,
     BreederStatus? status,
   }) =>
@@ -71,14 +79,9 @@ class Breeder {
         city: city ?? this.city,
         state: state ?? this.state,
         associationId: associationId ?? this.associationId,
+        associations: associations ?? this.associations,
         avatarUrl: avatarUrl ?? this.avatarUrl,
         status: status ?? this.status,
       );
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is Breeder && other.id == id;
-
-  @override
-  int get hashCode => id.hashCode;
 }

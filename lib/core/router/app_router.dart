@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/auth/ui/register_screen.dart';
+import '../../features/discover/domain/discover_animal.dart';
 import '../../features/discover/ui/animal_detail_screen.dart';
 import '../../features/discover/ui/discover_screen.dart';
 import '../../features/herd/domain/herd_animal.dart';
@@ -67,7 +68,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.myAnimalDetail,
         builder: (_, state) => MyAnimalDetailScreen(
-          animal: state.extra! as HerdAnimal,
+          animalId: state.extra! as String,
         ),
       ),
       GoRoute(

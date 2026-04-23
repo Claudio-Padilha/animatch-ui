@@ -17,14 +17,14 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # State management
-  flutter_riverpod: ^2.6.1
-  riverpod_annotation: ^2.3.5
+  flutter_riverpod: ^3.0.0
+  riverpod_annotation: ^4.0.0
 
   # HTTP
   dio: ^5.7.0
 
   # Immutable models & JSON
-  freezed_annotation: ^2.4.4
+  freezed_annotation: ^3.0.0
   json_annotation: ^4.9.0
 
   # Forms
@@ -65,11 +65,11 @@ dev_dependencies:
 
   # Code generation
   build_runner: ^2.4.13
-  freezed: ^2.5.7
+  freezed: ^3.0.0
   json_serializable: ^6.8.0
-  riverpod_generator: ^2.4.3
-  custom_lint: ^0.7.0
-  riverpod_lint: ^2.3.13
+  riverpod_generator: ^4.0.0
+  custom_lint: ^0.8.1
+  riverpod_lint: ^3.0.0
 
 flutter:
   uses-material-design: true

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -6,17 +7,19 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
 import '../domain/herd_animal.dart';
+import '../providers/herd_provider.dart';
 
-class MyAnimalDetailScreen extends StatefulWidget {
-  const MyAnimalDetailScreen({super.key, required this.animal});
+class MyAnimalDetailScreen extends ConsumerStatefulWidget {
+  const MyAnimalDetailScreen({super.key, required this.animalId});
 
-  final HerdAnimal animal;
+  final String animalId;
 
   @override
-  State<MyAnimalDetailScreen> createState() => _MyAnimalDetailScreenState();
+  ConsumerState<MyAnimalDetailScreen> createState() =>
+      _MyAnimalDetailScreenState();
 }
 
-class _MyAnimalDetailScreenState extends State<MyAnimalDetailScreen> {
+class _MyAnimalDetailScreenState extends ConsumerState<MyAnimalDetailScreen> {
   int _currentPhoto = 0;
   final _pageController = PageController();
 
@@ -28,91 +31,172 @@ class _MyAnimalDetailScreenState extends State<MyAnimalDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final animal = widget.animal;
+    final animalAsync = ref.watch(herdProvider).whenData(
+          (list) => list.firstWhere((a) => a.id == widget.animalId),
+        );
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       bottomNavigationBar: const AppBottomNav(),
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              _PhotoHeader(
-                animal: animal,
-                currentPhoto: _currentPhoto,
-                pageController: _pageController,
-                onPageChanged: (i) => setState(() => _currentPhoto = i),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _AnimalHeader(animal: animal),
-                      const SizedBox(height: 20),
-                      _InfoSection(
-                        title: 'IDENTIFICAÇÃO',
-                        children: [
-                          _InfoRow(
-                            icon: Icons.badge_outlined,
-                            text: animal.registration ?? 'Sem registro',
-                          ),
-                          if (animal.age != null)
-                            _InfoRow(
-                              icon: Icons.calendar_today_outlined,
-                              text: '${animal.age} anos',
-                            ),
-                          _InfoRow(
-                            icon: Icons.category_outlined,
-                            text: '${animal.breed} · ${animal.sex}',
-                          ),
-                        ],
-                      ),
-                      if (animal.location != null) ...[
-                        const SizedBox(height: 16),
-                        _InfoSection(
-                          title: 'LOCALIZAÇÃO',
-                          children: [
-                            _InfoRow(
-                              icon: Icons.location_on_outlined,
-                              text: animal.location!,
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      _InfoSection(
-                        title: 'STATUS',
-                        children: [
-                          _StatusRow(available: animal.available),
-                          _InfoRow(
-                            icon: Icons.star_rounded,
-                            text: 'Pontuação genética: ${animal.score}/100',
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+      body: animalAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              Text('Erro ao carregar animal',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: () => ref.invalidate(herdProvider),
+                child: const Text('Tentar novamente'),
               ),
             ],
           ),
-          // Back button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 4,
-            left: 8,
-            child: const _BackButton(),
-          ),
-          // Edit button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 4,
-            right: 8,
-            child: _EditButton(
-              onTap: () => context.push(AppRoutes.editAnimal, extra: animal),
+        ),
+        data: (animal) => Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
+                _PhotoHeader(
+                  animal: animal,
+                  currentPhoto: _currentPhoto,
+                  pageController: _pageController,
+                  onPageChanged: (i) => setState(() => _currentPhoto = i),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _AnimalHeader(animal: animal),
+                        const SizedBox(height: 20),
+                        _InfoSection(
+                          title: 'IDENTIFICAÇÃO',
+                          children: [
+                            _InfoRow(
+                              icon: Icons.badge_outlined,
+                              text: animal.registration ?? 'Sem registro',
+                            ),
+                            if (animal.age != null)
+                              _InfoRow(
+                                icon: Icons.calendar_today_outlined,
+                                text: '${animal.age} anos',
+                              ),
+                            _InfoRow(
+                              icon: Icons.category_outlined,
+                              text: '${animal.breed} · ${animal.sex}',
+                            ),
+                          ],
+                        ),
+                        if (animal.description != null &&
+                            animal.description!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _InfoSection(
+                            title: 'DESCRIÇÃO',
+                            children: [
+                              Text(
+                                animal.description!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: AppColors.onSurface,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (animal.location != null) ...[
+                          const SizedBox(height: 16),
+                          _InfoSection(
+                            title: 'LOCALIZAÇÃO',
+                            children: [
+                              _InfoRow(
+                                icon: Icons.location_on_outlined,
+                                text: animal.location!,
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        _InfoSection(
+                          title: 'STATUS',
+                          children: [
+                            _StatusRow(available: animal.available),
+                            _InfoRow(
+                              icon: Icons.star_rounded,
+                              text: 'Pontuação genética: ${animal.score}/100',
+                            ),
+                          ],
+                        ),
+                        if (animal.geneticIndices != null &&
+                            !animal.geneticIndices!.isEmpty) ...[
+                          const SizedBox(height: 16),
+                          _GeneticIndicesSection(
+                              indices: animal.geneticIndices!),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 4,
+              left: 8,
+              child: const _BackButton(),
+            ),
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 4,
+              right: 8,
+              child: _EditButton(
+                onTap: () =>
+                    context.push(AppRoutes.editAnimal, extra: animal),
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+// ─── Genetic indices section ──────────────────────────────────────────────────
+
+class _GeneticIndicesSection extends StatelessWidget {
+  const _GeneticIndicesSection({required this.indices});
+
+  final GeneticIndices indices;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoSection(
+      title: 'DEP / ÍNDICES GENÉTICOS',
+      children: [
+        if (indices.birthWeight != null)
+          _InfoRow(
+            icon: Icons.monitor_weight_outlined,
+            text: 'DEP Peso ao Nascer: ${indices.birthWeight} kg',
+          ),
+        if (indices.milkRestrictionWeight != null)
+          _InfoRow(
+            icon: Icons.monitor_weight_outlined,
+            text: 'DEP Peso ao Desmame: ${indices.milkRestrictionWeight} kg',
+          ),
+        if (indices.weight18m != null)
+          _InfoRow(
+            icon: Icons.monitor_weight_outlined,
+            text: 'DEP Peso 18 meses: ${indices.weight18m} kg',
+          ),
+        if (indices.fertilityIndex != null)
+          _InfoRow(
+            icon: Icons.favorite_border_outlined,
+            text: 'Índice de Fertilidade: ${indices.fertilityIndex}%',
+          ),
+      ],
     );
   }
 }
