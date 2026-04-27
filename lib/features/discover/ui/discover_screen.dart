@@ -30,6 +30,7 @@ class DiscoverScreen extends ConsumerStatefulWidget {
 
 class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   final _controller = CardSwiperController();
+  final _seenIds = <String>{};
 
   @override
   void dispose() {
@@ -64,15 +65,23 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                   const Center(child: CircularProgressIndicator()),
               error: (_, _) => _ErrorState(),
               data: (animals) {
-                if (animals.isEmpty) return const _NoSuggestions();
-                return _buildSwiper(animals, selected.id);
+                final unseen = animals
+                    .where((a) => !_seenIds.contains(a.id))
+                    .toList();
+                if (unseen.isEmpty) return const _NoSuggestions();
+                return _buildSwiper(unseen, selected.id);
               },
             ),
           ),
           suggestionsAsync.maybeWhen(
-            data: (animals) => animals.isNotEmpty
-                ? _ActionButtons(controller: _controller)
-                : const SizedBox.shrink(),
+            data: (animals) {
+              final unseen = animals
+                  .where((a) => !_seenIds.contains(a.id))
+                  .toList();
+              return unseen.isNotEmpty
+                  ? _ActionButtons(controller: _controller)
+                  : const SizedBox.shrink();
+            },
             orElse: () => const SizedBox.shrink(),
           ),
           const SizedBox(height: 8),
@@ -108,11 +117,14 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
   Widget _buildSwiper(List<DiscoverAnimal> animals, String selectedAnimalId) {
     return CardSwiper(
+      key: ValueKey(animals.map((a) => a.id).join()),
       controller: _controller,
       cardsCount: animals.length,
       numberOfCardsDisplayed: animals.length.clamp(1, 2),
       allowedSwipeDirection: const AllowedSwipeDirection.none(),
+      isLoop: false,
       onSwipe: (oldIndex, newIndex, direction) {
+        _seenIds.add(animals[oldIndex].id);
         if (newIndex == null) {
           ref.invalidate(suggestionsProvider(selectedAnimalId));
         }
