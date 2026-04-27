@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
@@ -10,10 +12,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/domain/distance_range.dart';
 import '../../../shared/widgets/circle_action_button.dart';
 import '../../../shared/widgets/filter_dropdown.dart';
+import '../../herd/domain/herd_animal.dart';
 import '../../herd/providers/selected_animal_provider.dart';
+import '../../matches/domain/match_item.dart';
+import '../../matches/providers/match_provider.dart';
 import '../domain/discover_animal.dart';
 import '../providers/discover_provider.dart';
-import '../../matches/providers/match_provider.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -113,9 +117,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           ref.invalidate(suggestionsProvider(selectedAnimalId));
         }
         if (direction == CardSwiperDirection.right) {
-          _onLike(animals[oldIndex], selectedAnimalId);
+          unawaited(_onLike(animals[oldIndex], selectedAnimalId));
         } else if (direction == CardSwiperDirection.left) {
-          _onReject(animals[oldIndex], selectedAnimalId);
+          unawaited(_onReject(animals[oldIndex], selectedAnimalId));
         }
         return true;
       },
@@ -130,16 +134,19 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     );
   }
 
-  void _onReject(DiscoverAnimal animal, String selectedAnimalId) {
+  Future<void> _onReject(DiscoverAnimal animal, String selectedAnimalId) async {
     final repo = ref.read(matchRepositoryProvider);
-    final future = animal.pendingMatchId != null
-        ? repo.rejectMatch(animal.pendingMatchId!)
-        : repo.createMatch(
-            firstLikeAnimalId: selectedAnimalId,
-            secondLikeAnimalId: animal.id,
-            status: 'rejected',
-          );
-    future.catchError((_) {
+    try {
+      if (animal.pendingMatchId != null) {
+        await repo.rejectMatch(animal.pendingMatchId!);
+      } else {
+        await repo.createMatch(
+          firstLikeAnimalId: selectedAnimalId,
+          secondLikeAnimalId: animal.id,
+          status: 'rejected',
+        );
+      }
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -148,18 +155,31 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           ),
         );
       }
-    });
+    }
   }
 
-  void _onLike(DiscoverAnimal animal, String selectedAnimalId) {
+  Future<void> _onLike(DiscoverAnimal animal, String selectedAnimalId) async {
     final repo = ref.read(matchRepositoryProvider);
-    final future = animal.pendingMatchId != null
-        ? repo.confirmMatch(animal.pendingMatchId!)
-        : repo.createMatch(
-            firstLikeAnimalId: selectedAnimalId,
-            secondLikeAnimalId: animal.id,
-          );
-    future.catchError((_) {
+    try {
+      final Map<String, dynamic> data;
+      if (animal.pendingMatchId != null) {
+        data = await repo.confirmMatch(animal.pendingMatchId!);
+      } else {
+        data = await repo.createMatch(
+          firstLikeAnimalId: selectedAnimalId,
+          secondLikeAnimalId: animal.id,
+        );
+      }
+      final status = data['status'] as String? ?? '';
+      if (status == 'confirmed' && mounted) {
+        final matchId = data['id'] as String? ?? '';
+        final selected = ref.read(selectedAnimalProvider);
+        if (selected != null) {
+          final match = _buildMatchItem(animal, selected, matchId);
+          await _showMatchCelebration(match);
+        }
+      }
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -168,8 +188,65 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           ),
         );
       }
-    });
+    }
   }
+
+  MatchItem _buildMatchItem(
+    DiscoverAnimal animal,
+    HerdAnimal selected,
+    String matchId,
+  ) {
+    return MatchItem(
+      id: matchId,
+      status: MatchStatus.confirmado,
+      timeLabel: 'Hoje',
+      yourAnimal: MatchAnimal(
+        id: selected.id,
+        name: selected.name,
+        breed: '${selected.breed} · ${selected.sex}',
+        imagePath:
+            selected.imagePaths.isNotEmpty ? selected.imagePaths.first : '',
+        score: selected.score,
+        registry: selected.registration,
+        location: selected.location,
+      ),
+      theirAnimal: MatchAnimal(
+        id: animal.id,
+        name: animal.name,
+        breed: '${animal.breed} · ${animal.sex}',
+        imagePath: animal.imagePaths.isNotEmpty ? animal.imagePaths.first : '',
+        score: animal.score,
+        registry:
+            animal.registrationCode.isNotEmpty ? animal.registrationCode : null,
+        depPeso: animal.depWeight != 0 ? animal.depWeight : null,
+        depConf: animal.depConf != 0 ? animal.depConf : null,
+        location: animal.locationFull.isNotEmpty ? animal.locationFull : null,
+      ),
+      contact: MatchContact(
+        breederName: animal.breederName,
+        phone: '',
+      ),
+    );
+  }
+
+  Future<void> _showMatchCelebration(MatchItem match) => showGeneralDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: 'Fechar',
+        barrierColor: Colors.black87,
+        transitionDuration: const Duration(milliseconds: 380),
+        transitionBuilder: (ctx, animation, _, child) => ScaleTransition(
+          scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+          child: FadeTransition(opacity: animation, child: child),
+        ),
+        pageBuilder: (ctx, _, _) => _MatchCelebrationDialog(
+          match: match,
+          onViewMatch: () {
+            Navigator.of(ctx).pop();
+            context.push(AppRoutes.matchDetail, extra: match);
+          },
+        ),
+      );
 }
 
 // ─── Filter bar ───────────────────────────────────────────────────────────────
@@ -574,6 +651,127 @@ class _ErrorState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Match celebration dialog ─────────────────────────────────────────────────
+
+class _MatchCelebrationDialog extends StatefulWidget {
+  const _MatchCelebrationDialog({
+    required this.match,
+    required this.onViewMatch,
+  });
+
+  final MatchItem match;
+  final VoidCallback onViewMatch;
+
+  @override
+  State<_MatchCelebrationDialog> createState() =>
+      _MatchCelebrationDialogState();
+}
+
+class _MatchCelebrationDialogState extends State<_MatchCelebrationDialog>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 36),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedBuilder(
+                  animation: _pulse,
+                  builder: (_, _) => Transform.scale(
+                    scale: 1.0 + _pulse.value * 0.12,
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.favorite_rounded,
+                        color: AppColors.primary,
+                        size: 44,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Text(
+                  'É um Match!',
+                  style: GoogleFonts.merriweather(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '${widget.match.yourAnimal.name} e ${widget.match.theirAnimal.name} são compatíveis!',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppColors.muted,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: widget.onViewMatch,
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                    label: const Text('Ver Match'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Continuar explorando',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

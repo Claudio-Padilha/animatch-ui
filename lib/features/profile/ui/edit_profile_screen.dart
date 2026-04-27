@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +10,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/local/profile_picture_store.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/domain/breeder_association.dart';
+import '../../../shared/widgets/address_form_fields.dart';
+import '../../../shared/widgets/associations_picker.dart';
 import '../domain/breeder_profile.dart';
 import '../providers/profile_provider.dart';
 
@@ -26,9 +28,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _name;
   late final TextEditingController _phone;
   late final TextEditingController _farmName;
+  late final TextEditingController _cpf;
+  late final TextEditingController _street;
   late final TextEditingController _city;
   late final TextEditingController _state;
+  late final TextEditingController _zip;
 
+  List<BreederAssociation> _associations = [];
   bool _isLoading = false;
 
   Future<void> _pickPhoto() async {
@@ -47,8 +53,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _name = TextEditingController(text: p.name);
     _phone = TextEditingController(text: p.phone);
     _farmName = TextEditingController(text: p.farmName);
+    _cpf = TextEditingController();
+    _street = TextEditingController();
     _city = TextEditingController(text: p.city);
     _state = TextEditingController(text: p.state);
+    _zip = TextEditingController();
+    _associations = List.of(p.associations);
   }
 
   @override
@@ -56,8 +66,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _name.dispose();
     _phone.dispose();
     _farmName.dispose();
+    _cpf.dispose();
+    _street.dispose();
     _city.dispose();
     _state.dispose();
+    _zip.dispose();
     super.dispose();
   }
 
@@ -68,7 +81,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       await ref.read(profileProvider.notifier).updateProfile(
             name: _name.text.trim(),
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-            farmName: _farmName.text.trim().isEmpty ? null : _farmName.text.trim(),
+            farmName:
+                _farmName.text.trim().isEmpty ? null : _farmName.text.trim(),
+            associations: _associations,
+            directions:
+                _street.text.trim().isEmpty ? null : _street.text.trim(),
+            zipCode: _zip.text.trim().isEmpty ? null : _zip.text.trim(),
             city: _city.text.trim().isEmpty ? null : _city.text.trim(),
             state: _state.text.trim().isEmpty ? null : _state.text.trim(),
           );
@@ -140,34 +158,30 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               textCapitalization: TextCapitalization.words,
             ),
             const SizedBox(height: 28),
+            _SectionLabel('Associações'),
+            const SizedBox(height: 12),
+            AssociationsPicker(
+              initialValue: _associations,
+              onChanged: (list) => setState(() => _associations = list),
+            ),
+            const SizedBox(height: 28),
+            _SectionLabel('CPF'),
+            const SizedBox(height: 12),
+            _Field(
+              controller: _cpf,
+              label: 'CPF',
+              hint: '000.000.000-00',
+              icon: Icons.badge_outlined,
+              readOnly: true,
+            ),
+            const SizedBox(height: 28),
             _SectionLabel('Endereço'),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: _Field(
-                    controller: _city,
-                    label: 'Cidade',
-                    icon: Icons.location_city_outlined,
-                    textCapitalization: TextCapitalization.words,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: _Field(
-                    controller: _state,
-                    label: 'Estado',
-                    hint: 'MG',
-                    icon: Icons.map_outlined,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(2),
-                      _UpperCaseFormatter(),
-                    ],
-                  ),
-                ),
-              ],
+            AddressFormFields(
+              streetController: _street,
+              cityController: _city,
+              stateController: _state,
+              zipController: _zip,
             ),
             const SizedBox(height: 28),
             _SectionLabel('Plano'),
@@ -189,6 +203,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('Salvar alterações'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _isLoading ? null : () => context.go(AppRoutes.profile),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text('Cancelar'),
             ),
           ],
         ),
@@ -283,7 +308,7 @@ class _Field extends StatelessWidget {
     this.validator,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
-    this.inputFormatters,
+    this.readOnly = false,
   });
 
   final TextEditingController controller;
@@ -293,7 +318,7 @@ class _Field extends StatelessWidget {
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextCapitalization textCapitalization;
-  final List<TextInputFormatter>? inputFormatters;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +327,10 @@ class _Field extends StatelessWidget {
       validator: validator,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
-      inputFormatters: inputFormatters,
+      readOnly: readOnly,
+      style: readOnly
+          ? TextStyle(color: Theme.of(context).disabledColor)
+          : null,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
@@ -310,6 +338,8 @@ class _Field extends StatelessWidget {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        filled: readOnly,
+        fillColor: readOnly ? Colors.grey.shade100 : null,
       ),
     );
   }
@@ -376,13 +406,3 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-// ─── Input formatter ──────────────────────────────────────────────────────────
-
-class _UpperCaseFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) =>
-      newValue.copyWith(text: newValue.text.toUpperCase());
-}

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
 import '../providers/herd_provider.dart';
 import '../providers/selected_animal_provider.dart';
@@ -83,13 +84,15 @@ class HerdScreen extends ConsumerWidget {
                 );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(AppRoutes.addAnimal),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Adicionar animal'),
-      ),
+      floatingActionButton: animalsAsync.asData?.value.isNotEmpty == true
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push(AppRoutes.addAnimal),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar animal'),
+            )
+          : null,
     );
   }
 }
@@ -279,15 +282,13 @@ class _AnimalCard extends StatelessWidget {
                       height: 64,
                       fit: BoxFit.cover,
                     )
-                  : Container(
+                  : Image.asset(
+                      animal.species == AnimalSpecies.cattle
+                          ? 'assets/images/cow.png'
+                          : 'assets/images/horse.png',
                       width: 64,
                       height: 64,
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      child: Icon(
-                        Icons.pets,
-                        color: AppColors.primary.withValues(alpha: 0.4),
-                        size: 32,
-                      ),
+                      fit: BoxFit.contain,
                     ),
             ),
             const SizedBox(width: 12),
@@ -406,10 +407,13 @@ class _EmptyHerd extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.pets_outlined,
-              size: 64,
-              color: AppColors.primary.withValues(alpha: 0.3),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/images/horse.png', width: 72, height: 72),
+                const SizedBox(width: 12),
+                Image.asset('assets/images/cow.png', width: 72, height: 72),
+              ],
             ),
             const SizedBox(height: 20),
             Text(

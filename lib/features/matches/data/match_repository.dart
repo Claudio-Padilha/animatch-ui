@@ -20,28 +20,40 @@ class MatchRepository {
         .toList();
   }
 
-  Future<void> confirmMatch(String matchId) => _updateStatus(matchId, 'confirmed');
+  /// Returns the raw match payload (contains at minimum `id` and `status`).
+  Future<Map<String, dynamic>> confirmMatch(String matchId) async {
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/matches/$matchId/status',
+      data: {'status': 'confirmed'},
+      options: Options(contentType: 'application/json'),
+    );
+    return response.data ?? {};
+  }
 
-  Future<void> rejectMatch(String matchId) => _updateStatus(matchId, 'rejected');
-
-  Future<void> _updateStatus(String matchId, String status) => _dio.patch<void>(
+  Future<void> rejectMatch(String matchId) => _dio.patch<void>(
         '/matches/$matchId/status',
-        data: {'status': status},
+        data: {'status': 'rejected'},
         options: Options(contentType: 'application/json'),
       );
 
-  Future<void> createMatch({
+  Future<void> deleteMatch(String matchId) =>
+      _dio.delete<void>('/matches/$matchId');
+
+  /// Returns the raw match payload (contains at minimum `id` and `status`).
+  Future<Map<String, dynamic>> createMatch({
     required String firstLikeAnimalId,
     required String secondLikeAnimalId,
     String? status,
-  }) =>
-      _dio.post<void>(
-        '/matches',
-        data: {
-          'firstLikeAnimalId': firstLikeAnimalId,
-          'secondLikeAnimalId': secondLikeAnimalId,
-          'status': ?status,
-        },
-        options: Options(contentType: 'application/json'),
-      );
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/matches',
+      data: {
+        'firstLikeAnimalId': firstLikeAnimalId,
+        'secondLikeAnimalId': secondLikeAnimalId,
+        'status': ?status,
+      },
+      options: Options(contentType: 'application/json'),
+    );
+    return response.data ?? {};
+  }
 }

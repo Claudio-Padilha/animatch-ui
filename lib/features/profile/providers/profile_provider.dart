@@ -74,6 +74,9 @@ class ProfileNotifier extends Notifier<BreederProfile> {
     required String name,
     String? phone,
     String? farmName,
+    List<BreederAssociation> associations = const [],
+    String? directions,
+    String? zipCode,
     String? city,
     String? state,
   }) async {
@@ -83,6 +86,9 @@ class ProfileNotifier extends Notifier<BreederProfile> {
           name: name,
           phone: phone,
           farmName: farmName,
+          associations: associations,
+          directions: directions,
+          zipCode: zipCode,
           city: city,
           state: state,
         );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/address_form_fields.dart';
 import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -29,10 +30,10 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
   late final TextEditingController _registrationController;
 
   // Address
+  late final TextEditingController _propertyNameController;
   late final TextEditingController _cityController;
   late final TextEditingController _stateController;
   late final TextEditingController _zipCodeController;
-  late final TextEditingController _directionsController;
 
   // Genetic indices
   late final TextEditingController _birthWeightController;
@@ -67,10 +68,10 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
     _registrationController =
         TextEditingController(text: a.registration ?? '');
 
+    _propertyNameController = TextEditingController(text: a.propertyName ?? '');
     _cityController = TextEditingController(text: a.city ?? '');
     _stateController = TextEditingController(text: a.state ?? '');
     _zipCodeController = TextEditingController(text: a.zipCode ?? '');
-    _directionsController = TextEditingController(text: a.directions ?? '');
 
     _birthWeightController = TextEditingController(
         text: indices?.birthWeight != null ? '${indices!.birthWeight}' : '');
@@ -101,10 +102,10 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
     _qualityScoreController.dispose();
     _ageController.dispose();
     _registrationController.dispose();
+    _propertyNameController.dispose();
     _cityController.dispose();
     _stateController.dispose();
     _zipCodeController.dispose();
-    _directionsController.dispose();
     _birthWeightController.dispose();
     _milkRestrictionWeightController.dispose();
     _weight18mController.dispose();
@@ -191,10 +192,10 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
           species: _selectedSpecies,
           breed: _selectedBreed!,
           sexLabel: _selectedSexLabel!,
+          propertyName: _propertyNameController.text.trim(),
           city: _cityController.text.trim(),
           state: _stateController.text.trim(),
           zipCode: _zipCodeController.text.trim(),
-          directions: _directionsController.text.trim(),
           description: _descriptionController.text.trim(),
           qualityScore: qualityScore,
           age: age,
@@ -420,66 +421,24 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
               // ── Endereço ─────────────────────────────────────────────
               _SectionLabel('Localização *'),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: TextFormField(
-                      controller: _cityController,
-                      textCapitalization: TextCapitalization.words,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Município *',
-                        hintText: 'Ex: Goiânia',
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Obrigatório' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: TextFormField(
-                      controller: _stateController,
-                      textCapitalization: TextCapitalization.characters,
-                      textInputAction: TextInputAction.next,
-                      maxLength: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'UF *',
-                        hintText: 'GO',
-                        counterText: '',
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Obrigatório' : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
               TextFormField(
-                controller: _zipCodeController,
-                keyboardType: TextInputType.number,
+                controller: _propertyNameController,
+                textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
-                  labelText: 'CEP *',
-                  hintText: 'Ex: 75830-000',
+                  labelText: 'Nome da propriedade',
+                  hintText: 'Ex: Fazenda Santa Luzia',
+                  prefixIcon: Icon(Icons.agriculture_outlined, size: 20),
                 ),
                 validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
+                    (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _directionsController,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Ponto de referência / acesso *',
-                  hintText: 'Ex: Rodovia GO-060, km 12, zona rural',
-                  prefixIcon:
-                      Icon(Icons.location_on_outlined, size: 20),
-                ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
+              const SizedBox(height: 16),
+              AddressFormFields(
+                cityController: _cityController,
+                stateController: _stateController,
+                zipController: _zipCodeController,
+                required: true,
               ),
               const SizedBox(height: 16),
 

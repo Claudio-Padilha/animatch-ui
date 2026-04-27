@@ -62,6 +62,9 @@ class ProfileRepository {
     required String name,
     String? phone,
     String? farmName,
+    List<BreederAssociation> associations = const [],
+    String? directions,
+    String? zipCode,
     String? city,
     String? state,
   }) async {
@@ -72,8 +75,15 @@ class ProfileRepository {
         'name': name,
         if (phone != null && phone.isNotEmpty) 'phone': phone,
         if (farmName != null && farmName.isNotEmpty) 'propertyName': farmName,
-        if (city != null && city.isNotEmpty || state != null && state.isNotEmpty)
+        if (associations.isNotEmpty)
+          'associations': associations.map((a) => a.toJson()).toList(),
+        if (directions != null && directions.isNotEmpty ||
+            zipCode != null && zipCode.isNotEmpty ||
+            city != null && city.isNotEmpty ||
+            state != null && state.isNotEmpty)
           'address': {
+            if (directions != null && directions.isNotEmpty) 'directions': directions,
+            if (zipCode != null && zipCode.isNotEmpty) 'zipCode': zipCode,
             if (city != null && city.isNotEmpty) 'city': city,
             if (state != null && state.isNotEmpty) 'state': state,
           },

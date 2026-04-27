@@ -93,29 +93,23 @@ class _MatchCard extends StatelessWidget {
                       match.theirAnimal.breed,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    const SizedBox(height: 6),
+                    Text(
+                      match.timeLabel,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppColors.muted,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     _StatusBadge(status: match.status),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    match.timeLabel,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: AppColors.muted,
-                    ),
-                  ),
-                  if (isConfirmed) ...[
-                    const SizedBox(height: 8),
-                    const Icon(Icons.chevron_right,
-                        color: AppColors.muted, size: 20),
-                  ],
-                ],
-              ),
+              if (isConfirmed)
+                const Icon(Icons.chevron_right,
+                    color: AppColors.muted, size: 20),
             ],
           ),
         ),
@@ -131,8 +125,12 @@ Widget _animalPhoto(String path, {required double size}) {
   return Container(
     width: size,
     height: size,
-    color: AppColors.primary.withValues(alpha: 0.08),
-    child: Icon(Icons.pets, size: size * 0.45, color: AppColors.primary.withValues(alpha: 0.4)),
+    color: AppColors.primary.withValues(alpha: 0.06),
+    child: Icon(
+      Icons.image_outlined,
+      size: size * 0.42,
+      color: AppColors.primary.withValues(alpha: 0.30),
+    ),
   );
 }
 
@@ -196,7 +194,7 @@ class _NoAnimalSelected extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.pets,
+            Icon(Icons.account_tree_outlined,
                 size: 64, color: AppColors.muted.withValues(alpha: 0.4)),
             const SizedBox(height: 20),
             Text('Escolha um animal',
@@ -281,3 +279,4 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+

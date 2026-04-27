@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_bottom_nav.dart';
+import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
 import '../providers/herd_provider.dart';
 
@@ -227,12 +228,14 @@ class _PhotoHeader extends StatelessWidget {
           children: [
             paths.isEmpty
                 ? Container(
-                    color: AppColors.primary.withValues(alpha: 0.08),
+                    color: AppColors.primary.withValues(alpha: 0.06),
                     child: Center(
-                      child: Icon(
-                        Icons.pets,
-                        size: 80,
-                        color: AppColors.primary.withValues(alpha: 0.3),
+                      child: Image.asset(
+                        animal.species == AnimalSpecies.cattle
+                            ? 'assets/images/cow.png'
+                            : 'assets/images/horse.png',
+                        width: 180,
+                        height: 180,
                       ),
                     ),
                   )
@@ -512,19 +515,13 @@ class _EditButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.45),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(
-          Icons.edit_rounded,
-          color: Colors.white,
-          size: 18,
+    return TextButton(
+      onPressed: onTap,
+      child: Text(
+        'Editar',
+        style: GoogleFonts.inter(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

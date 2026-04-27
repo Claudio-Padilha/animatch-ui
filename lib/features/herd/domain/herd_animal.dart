@@ -43,7 +43,7 @@ class HerdAnimal {
     this.city,
     this.state,
     this.zipCode,
-    this.directions,
+    this.propertyName,
     this.age,
     this.description,
     this.geneticIndices,
@@ -64,7 +64,7 @@ class HerdAnimal {
   final String? city;
   final String? state;
   final String? zipCode;
-  final String? directions;
+  final String? propertyName;
   final int? age;
   final String? description;
   final GeneticIndices? geneticIndices;
@@ -92,7 +92,7 @@ class HerdAnimal {
       city: address?['city'] as String?,
       state: address?['state'] as String?,
       zipCode: address?['zipCode'] as String?,
-      directions: address?['directions'] as String?,
+      propertyName: address?['directions'] as String?,
       description: json['description'] as String?,
       geneticIndices:
           indicesJson != null ? GeneticIndices.fromJson(indicesJson) : null,
@@ -121,7 +121,7 @@ class HerdAnimal {
     String? city,
     String? state,
     String? zipCode,
-    String? directions,
+    String? propertyName,
     int? age,
     String? description,
     GeneticIndices? geneticIndices,
@@ -140,7 +140,7 @@ class HerdAnimal {
       city: city ?? this.city,
       state: state ?? this.state,
       zipCode: zipCode ?? this.zipCode,
-      directions: directions ?? this.directions,
+      propertyName: propertyName ?? this.propertyName,
       age: age ?? this.age,
       description: description ?? this.description,
       geneticIndices: geneticIndices ?? this.geneticIndices,

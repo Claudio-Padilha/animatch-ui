@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +10,7 @@ import '../../../core/local/profile_picture_store.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/domain/breeder_association.dart';
+import '../../../shared/widgets/address_form_fields.dart';
 import '../../../shared/widgets/associations_picker.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
@@ -201,18 +201,11 @@ class _ProfileVerificationScreenState
             TextFormField(
               controller: _cpf,
               keyboardType: TextInputType.number,
-              inputFormatters: [_CpfInputFormatter()],
-              decoration: InputDecoration(
+              inputFormatters: [CpfInputFormatter()],
+              decoration: const InputDecoration(
                 labelText: 'CPF',
                 hintText: '000.000.000-00',
-                prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
+                prefixIcon: Icon(Icons.badge_outlined, size: 20),
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Campo obrigatório';
@@ -224,56 +217,12 @@ class _ProfileVerificationScreenState
             const SizedBox(height: 28),
             _SectionLabel('Endereço'),
             const SizedBox(height: 12),
-            _Field(
-              controller: _street,
-              label: 'Logradouro',
-              hint: 'Ex: Rua das Acácias, 120',
-              icon: Icons.home_outlined,
-              validator: _required,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: _Field(
-                    controller: _city,
-                    label: 'Cidade',
-                    icon: Icons.location_city_outlined,
-                    validator: _required,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: _Field(
-                    controller: _stateCtrl,
-                    label: 'Estado',
-                    hint: 'MG',
-                    icon: Icons.map_outlined,
-                    validator: _required,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(2),
-                      UpperCaseTextFormatter(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _Field(
-              controller: _zip,
-              label: 'CEP',
-              hint: '00000-000',
-              icon: Icons.markunread_mailbox_outlined,
-              keyboardType: TextInputType.number,
-              inputFormatters: [_ZipInputFormatter()],
-              validator: (v) {
-                if (v == null || v.isEmpty) return 'Campo obrigatório';
-                final digits = v.replaceAll(RegExp(r'\D'), '');
-                if (digits.length != 8) return 'CEP inválido';
-                return null;
-              },
+            AddressFormFields(
+              streetController: _street,
+              cityController: _city,
+              stateController: _stateCtrl,
+              zipController: _zip,
+              required: true,
             ),
             const SizedBox(height: 36),
             FilledButton(
@@ -334,7 +283,6 @@ class _Field extends StatelessWidget {
     this.validator,
     this.keyboardType,
     this.textCapitalization = TextCapitalization.none,
-    this.inputFormatters,
   });
 
   final TextEditingController controller;
@@ -344,7 +292,6 @@ class _Field extends StatelessWidget {
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextCapitalization textCapitalization;
-  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -353,7 +300,6 @@ class _Field extends StatelessWidget {
       validator: validator,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
-      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
@@ -366,56 +312,3 @@ class _Field extends StatelessWidget {
   }
 }
 
-// ─── Input formatters ─────────────────────────────────────────────────────────
-
-class _CpfInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final capped = digits.length > 11 ? digits.substring(0, 11) : digits;
-    final buffer = StringBuffer();
-    for (var i = 0; i < capped.length; i++) {
-      if (i == 3 || i == 6) buffer.write('.');
-      if (i == 9) buffer.write('-');
-      buffer.write(capped[i]);
-    }
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
-
-class _ZipInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final capped = digits.length > 8 ? digits.substring(0, 8) : digits;
-    final buffer = StringBuffer();
-    for (var i = 0; i < capped.length; i++) {
-      if (i == 5) buffer.write('-');
-      buffer.write(capped[i]);
-    }
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
-
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) =>
-      newValue.copyWith(text: newValue.text.toUpperCase());
-}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -6,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/match_item.dart';
+import '../providers/match_provider.dart';
 
 Widget _animalPhoto(String path, {required double size}) {
   if (path.isNotEmpty) {
@@ -23,13 +25,13 @@ Widget _animalPhoto(String path, {required double size}) {
   );
 }
 
-class MatchDetailScreen extends StatelessWidget {
+class MatchDetailScreen extends ConsumerWidget {
   const MatchDetailScreen({super.key, required this.match});
 
   final MatchItem match;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -53,7 +55,7 @@ class MatchDetailScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _ActionButtons(match: match),
             const SizedBox(height: 32),
-            _UnmatchButton(onTap: () => Navigator.of(context).pop()),
+            _UnmatchButton(match: match),
           ],
         ),
       ),
@@ -411,47 +413,62 @@ class _ActionButtons extends StatelessWidget {
 
 // ─── Unmatch button ───────────────────────────────────────────────────────────
 
-class _UnmatchButton extends StatelessWidget {
-  const _UnmatchButton({required this.onTap});
+class _UnmatchButton extends ConsumerWidget {
+  const _UnmatchButton({required this.match});
 
-  final VoidCallback onTap;
+  final MatchItem match;
 
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: () => _confirmUnmatch(context),
-      child: Text(
-        'Desfazer match',
-        style: GoogleFonts.inter(
-          fontSize: 14,
-          color: Colors.red.shade400,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmUnmatch(BuildContext context) async {
+  Future<void> _confirmUnmatch(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Desfazer match?'),
+        title: const Text('Cancelar match?'),
         content: const Text(
           'O contato será removido e esta conexão será desfeita.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+            child: const Text('Voltar'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Desfazer'),
+            child: const Text('Cancelar match'),
           ),
         ],
       ),
     );
-    if (confirmed == true) onTap();
+    if (confirmed != true || !context.mounted) return;
+
+    final animalId = match.yourAnimal.id ?? '';
+    await ref
+        .read(deleteMatchProvider.notifier)
+        .deleteMatch(match.id, animalId: animalId);
+
+    if (context.mounted) context.go(AppRoutes.matches);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDeleting = ref.watch(deleteMatchProvider).isLoading;
+
+    return TextButton(
+      onPressed: isDeleting ? null : () => _confirmUnmatch(context, ref),
+      child: isDeleting
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(
+              'Cancelar match',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: Colors.red.shade400,
+              ),
+            ),
+    );
   }
 }
 

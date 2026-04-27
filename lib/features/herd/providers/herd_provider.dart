@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../profile/providers/profile_provider.dart';
 import '../data/herd_repository.dart';
 import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
@@ -62,7 +63,7 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
     required AnimalSpecies species,
     required AnimalBreed breed,
     required String sexLabel,
-    required String directions,
+    required String propertyName,
     required String zipCode,
     required String city,
     required String state,
@@ -83,7 +84,7 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
       'sex': sexApiValue[sexLabel]!.apiValue,
       'status': available ? 'active' : 'inactive',
       'address': {
-        'directions': directions,
+        'directions': propertyName,
         'zipCode': zipCode,
         'city': city,
         'state': state.toUpperCase(),
@@ -109,6 +110,7 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
 
     if (result is AsyncData) {
       await ref.read(herdProvider.notifier).refresh();
+      ref.invalidate(breederStatisticsProvider);
     }
 
     this.state = result.whenData((_) {});
@@ -133,7 +135,7 @@ class UpdateAnimalNotifier extends AsyncNotifier<void> {
     required String city,
     required String state,
     required String zipCode,
-    required String directions,
+    required String propertyName,
     String? description,
     int? qualityScore,
     int? age,
@@ -148,7 +150,7 @@ class UpdateAnimalNotifier extends AsyncNotifier<void> {
       'sex': sexApiValue[sexLabel]!.apiValue,
       'status': available ? 'active' : 'inactive',
       'address': {
-        'directions': directions,
+        'directions': propertyName,
         'zipCode': zipCode,
         'city': city,
         'state': state.toUpperCase(),
@@ -199,6 +201,7 @@ class ToggleAnimalNotifier extends AsyncNotifier<void> {
     );
     if (result is AsyncData<HerdAnimal>) {
       ref.read(herdProvider.notifier).updateOne(result.value);
+      ref.invalidate(breederStatisticsProvider);
     }
     state = result.whenData((_) {});
   }
@@ -220,6 +223,7 @@ class DeleteAnimalNotifier extends AsyncNotifier<void> {
     );
     if (result is AsyncData) {
       ref.read(herdProvider.notifier).remove(id);
+      ref.invalidate(breederStatisticsProvider);
     }
     state = result;
   }

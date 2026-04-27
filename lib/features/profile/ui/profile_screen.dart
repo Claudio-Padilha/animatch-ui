@@ -202,19 +202,19 @@ class _StatsCard extends ConsumerWidget {
             data: (s) => Column(
               children: [
                 _StatRow(
-                  icon: Icons.pets,
+                  icon: const Icon(Icons.assignment_ind_outlined, size: 20),
                   label: 'Animais ativos',
                   value: '${s.activeAnimals}',
                 ),
                 const Divider(height: 24),
                 _StatRow(
-                  icon: Icons.favorite_rounded,
+                  icon: Icon(Icons.favorite_rounded, size: 18, color: AppColors.primary),
                   label: 'Matches confirmados',
                   value: '${s.breederMatches}',
                 ),
                 const Divider(height: 24),
                 _StatRow(
-                  icon: Icons.thumb_up_rounded,
+                  icon: Icon(Icons.thumb_up_rounded, size: 18, color: AppColors.primary),
                   label: 'Curtidas recebidas',
                   value: '${s.likes}',
                 ),
@@ -234,7 +234,7 @@ class _StatRow extends StatelessWidget {
     required this.value,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String label;
   final String value;
 
@@ -242,7 +242,7 @@ class _StatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
+        icon,
         const SizedBox(width: 10),
         Expanded(
           child: Text(label, style: Theme.of(context).textTheme.bodyMedium),

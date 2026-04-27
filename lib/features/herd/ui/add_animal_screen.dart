@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/address_form_fields.dart';
 import '../domain/animal_enums.dart';
 import '../providers/herd_provider.dart';
 
@@ -28,7 +29,7 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
   final _registrationController = TextEditingController();
 
   // Address
-  final _directionsController = TextEditingController();
+  final _propertyNameController = TextEditingController();
   final _zipCodeController = TextEditingController();
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
@@ -52,7 +53,7 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
     _qualityScoreController.dispose();
     _ageController.dispose();
     _registrationController.dispose();
-    _directionsController.dispose();
+    _propertyNameController.dispose();
     _zipCodeController.dispose();
     _cityController.dispose();
     _stateController.dispose();
@@ -80,7 +81,7 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
           species: _selectedSpecies,
           breed: _selectedBreed!,
           sexLabel: _selectedSexLabel!,
-          directions: _directionsController.text.trim(),
+          propertyName: _propertyNameController.text.trim(),
           zipCode: _zipCodeController.text.trim(),
           city: _cityController.text.trim(),
           state: _stateController.text.trim(),
@@ -137,7 +138,7 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Photo upload area ────────────────────────────────────
-              _PhotoUploadArea(),
+              _PhotoUploadArea(species: _selectedSpecies),
               const SizedBox(height: 24),
 
               // ── Nome ─────────────────────────────────────────────────
@@ -289,66 +290,24 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
               // ── Endereço ─────────────────────────────────────────────
               _SectionLabel('Localização *'),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: TextFormField(
-                      controller: _cityController,
-                      textCapitalization: TextCapitalization.words,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Município *',
-                        hintText: 'Ex: Goiânia',
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Obrigatório' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
-                    child: TextFormField(
-                      controller: _stateController,
-                      textCapitalization: TextCapitalization.characters,
-                      textInputAction: TextInputAction.next,
-                      maxLength: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'UF *',
-                        hintText: 'GO',
-                        counterText: '',
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Obrigatório' : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
               TextFormField(
-                controller: _zipCodeController,
-                keyboardType: TextInputType.number,
+                controller: _propertyNameController,
+                textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
-                  labelText: 'CEP *',
-                  hintText: 'Ex: 75830-000',
+                  labelText: 'Nome da propriedade',
+                  hintText: 'Ex: Fazenda Santa Luzia',
+                  prefixIcon: Icon(Icons.agriculture_outlined, size: 20),
                 ),
                 validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
+                    (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _directionsController,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Ponto de referência / acesso *',
-                  hintText: 'Ex: Rodovia GO-060, km 12, zona rural',
-                  prefixIcon:
-                      Icon(Icons.location_on_outlined, size: 20),
-                ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
+              const SizedBox(height: 16),
+              AddressFormFields(
+                cityController: _cityController,
+                stateController: _stateController,
+                zipController: _zipCodeController,
+                required: true,
               ),
               const SizedBox(height: 16),
 
@@ -420,46 +379,66 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
 // ---------------------------------------------------------------------------
 
 class _PhotoUploadArea extends StatelessWidget {
+  const _PhotoUploadArea({required this.species});
+
+  final AnimalSpecies species;
+
+  String get _assetPath => species == AnimalSpecies.cattle
+      ? 'assets/images/cow.png'
+      : 'assets/images/horse.png';
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // TODO: open image_picker
+        // TODO: open image picker
       },
       child: Container(
-        height: 140,
+        height: 160,
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            style: BorderStyle.solid,
+            color: AppColors.primary.withValues(alpha: 0.25),
             width: 1.5,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_photo_alternate_outlined,
-              size: 40,
-              color: AppColors.primary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Adicionar fotos',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primary.withValues(alpha: 0.7),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(
+                opacity: 0.45,
+                child: Image.asset(_assetPath, fit: BoxFit.cover),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Toque para selecionar da galeria',
-              style: TextStyle(fontSize: 12, color: AppColors.muted),
-            ),
-          ],
+              const ColoredBox(color: Color(0x1A000000)),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 36,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Adicionar fotos',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Toque para selecionar da galeria',
+                    style: TextStyle(
+                        fontSize: 12, color: Colors.white.withValues(alpha: 0.75)),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

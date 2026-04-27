@@ -11,9 +11,11 @@ import '../domain/breeder_association.dart';
 class AssociationsPicker extends ConsumerStatefulWidget {
   const AssociationsPicker({
     super.key,
+    this.initialValue = const [],
     required this.onChanged,
   });
 
+  final List<BreederAssociation> initialValue;
   final ValueChanged<List<BreederAssociation>> onChanged;
 
   @override
@@ -22,6 +24,18 @@ class AssociationsPicker extends ConsumerStatefulWidget {
 
 class _AssociationsPickerState extends ConsumerState<AssociationsPicker> {
   final List<_Entry> _entries = [];
+
+  @override
+  void initState() {
+    super.initState();
+    for (final a in widget.initialValue) {
+      _entries.add(_Entry(
+        code: a.code,
+        name: a.name,
+        initialText: a.registrationNumber ?? '',
+      ));
+    }
+  }
 
   Set<String> get _selectedCodes => _entries.map((e) => e.code).toSet();
 
@@ -238,8 +252,8 @@ class _AssociationPickSheet extends StatelessWidget {
 // ─── Internal entry ───────────────────────────────────────────────────────────
 
 class _Entry {
-  _Entry({required this.code, required this.name})
-      : controller = TextEditingController();
+  _Entry({required this.code, required this.name, String initialText = ''})
+      : controller = TextEditingController(text: initialText);
 
   final String code;
   final String name;
