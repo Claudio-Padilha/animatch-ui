@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:go_router/go_router.dart';
 
@@ -39,16 +40,39 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _isUploadingAvatar = false;
 
   Future<void> _pickPhoto() async {
+    final source = await _showSourceChooser();
+    if (source == null) return;
     setState(() => _isUploadingAvatar = true);
     try {
       final url = await ref
           .read(cloudinaryUploaderProvider)
-          .pickAndUpload(folder: 'breeders');
+          .pickAndUpload(folder: 'breeders', source: source);
       if (url != null && mounted) setState(() => _pictureUrl = url);
     } finally {
       if (mounted) setState(() => _isUploadingAvatar = false);
     }
   }
+
+  Future<ImageSource?> _showSourceChooser() => showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (_) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded),
+                title: const Text('Tirar foto'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded),
+                title: const Text('Escolher da galeria'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
 
   @override
   void initState() {

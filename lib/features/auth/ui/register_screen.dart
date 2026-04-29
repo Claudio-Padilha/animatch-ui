@@ -44,10 +44,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           );
       if (!mounted) return;
       context.go(AppRoutes.login);
-    } on DioException catch (e) {
+    } on DioException catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Credenciais inválidas. Tente novamente.')),
+        const SnackBar(
+          content: Text('Não foi possível criar a conta. Verifique seus dados e tente novamente.'),
+        ),
       );
     } catch (_) {
       if (!mounted) return;

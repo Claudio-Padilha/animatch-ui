@@ -36,6 +36,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _emailController.text.trim(),
           );
       // RouterNotifier handles navigation once auth state is set
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('E-mail ou senha inválidos.')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

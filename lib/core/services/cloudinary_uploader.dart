@@ -11,11 +11,18 @@ class CloudinaryUploader {
   final Dio _dio; // app's authed Dio — used only for the signature request
   static final _cdnDio = Dio(); // plain Dio for direct Cloudinary upload
 
-  /// Opens the gallery, uploads the picked image to Cloudinary, and returns
-  /// the secure_url. Returns null if the user cancelled.
-  Future<String?> pickAndUpload({String folder = 'animals'}) async {
+  /// Opens the image picker (gallery or camera), uploads to Cloudinary, and
+  /// returns the secure_url. Returns null if the user cancelled.
+  ///
+  /// Android: CAMERA and READ_MEDIA_IMAGES permissions are declared in AndroidManifest.xml.
+  /// iOS: NSCameraUsageDescription and NSPhotoLibraryUsageDescription must be added to
+  /// ios/Runner/Info.plist before building for iOS — requires macOS/Xcode to edit safely.
+  Future<String?> pickAndUpload({
+    String folder = 'animals',
+    ImageSource source = ImageSource.gallery,
+  }) async {
     final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 80,
     );
     if (picked == null) return null;

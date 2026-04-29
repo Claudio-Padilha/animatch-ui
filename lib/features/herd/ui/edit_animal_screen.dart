@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/services/cloudinary_uploader.dart';
@@ -175,12 +176,36 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
     setState(() => _available = !isActive);
   }
 
+  Future<ImageSource?> _showSourceChooser() =>
+      showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (_) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded),
+                title: const Text('Tirar foto'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded),
+                title: const Text('Escolher da galeria'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+
   Future<void> _handlePhotoPick() async {
+    final source = await _showSourceChooser();
+    if (source == null) return;
     setState(() => _isUploadingPhoto = true);
     try {
       final url = await ref
           .read(cloudinaryUploaderProvider)
-          .pickAndUpload(folder: 'animals');
+          .pickAndUpload(folder: 'animals', source: source);
       if (url != null) setState(() => _photoUrls.add(url));
     } catch (e) {
       if (mounted) {
