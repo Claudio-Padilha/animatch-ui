@@ -10,6 +10,11 @@ class ProfileRepository {
 
   final Dio _dio;
 
+  Future<Breeder> getBreeder(String id) async {
+    final response = await _dio.get<Map<String, dynamic>>('/breeders/$id');
+    return Breeder.fromJson(response.data!);
+  }
+
   Future<List<Association>> getAssociations() async {
     final response = await _dio.get<List<dynamic>>('/associations');
     return (response.data as List)
@@ -63,6 +68,7 @@ class ProfileRepository {
     String? phone,
     String? farmName,
     List<BreederAssociation> associations = const [],
+    String? pictureUrl,
     String? directions,
     String? zipCode,
     String? city,
@@ -73,6 +79,7 @@ class ProfileRepository {
       options: Options(contentType: 'application/json'),
       data: {
         'name': name,
+        'pictureUrl': ?pictureUrl,
         if (phone != null && phone.isNotEmpty) 'phone': phone,
         if (farmName != null && farmName.isNotEmpty) 'propertyName': farmName,
         if (associations.isNotEmpty)

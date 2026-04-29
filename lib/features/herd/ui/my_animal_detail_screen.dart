@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -243,12 +245,25 @@ class _PhotoHeader extends StatelessWidget {
                     controller: pageController,
                     itemCount: paths.length,
                     onPageChanged: onPageChanged,
+                    scrollBehavior: const MaterialScrollBehavior().copyWith(
+                      dragDevices: {
+                        PointerDeviceKind.touch,
+                        PointerDeviceKind.mouse,
+                      },
+                    ),
                     itemBuilder: (_, i) => Container(
                       color: Colors.black,
-                      child: Image.asset(
-                        paths[i],
+                      child: CachedNetworkImage(
+                        imageUrl: paths[i],
                         fit: BoxFit.contain,
                         width: double.infinity,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                        errorWidget: (context, url, err) => Center(
+                          child: Icon(Icons.broken_image_outlined,
+                              color: Colors.white54, size: 48),
+                        ),
                       ),
                     ),
                   ),

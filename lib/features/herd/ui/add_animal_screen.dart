@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/cloudinary_uploader.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/address_form_fields.dart';
+import '../../../shared/widgets/animal_photo_strip.dart';
 import '../domain/animal_enums.dart';
 import '../providers/herd_provider.dart';
 
@@ -45,6 +47,8 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
   String? _selectedSexLabel;
   bool _available = true;
   bool _showDep = false;
+  final _photoUrls = <String>[];
+  bool _isUploadingPhoto = false;
 
   @override
   void dispose() {
@@ -62,6 +66,27 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
     _weight18mController.dispose();
     _fertilityIndexController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handlePhotoPick() async {
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final url = await ref
+          .read(cloudinaryUploaderProvider)
+          .pickAndUpload(folder: 'animals');
+      if (url != null) setState(() => _photoUrls.add(url));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao fazer upload: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   void _onSpeciesChanged(String? label) {
@@ -90,6 +115,7 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
           age: int.tryParse(_ageController.text.trim()),
           registrationNumber: _registrationController.text.trim(),
           available: _available,
+          imageUrls: _photoUrls,
           geneticIndices: {
             'birth_weight':
                 double.tryParse(_birthWeightController.text.trim()),
@@ -138,7 +164,14 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Photo upload area ────────────────────────────────────
-              _PhotoUploadArea(species: _selectedSpecies),
+              _SectionLabel('Fotos'),
+              const SizedBox(height: 8),
+              AnimalPhotoStrip(
+                photoUrls: _photoUrls,
+                isLoading: _isUploadingPhoto,
+                onAdd: _handlePhotoPick,
+                onRemove: (i) => setState(() => _photoUrls.removeAt(i)),
+              ),
               const SizedBox(height: 24),
 
               // ── Nome ─────────────────────────────────────────────────
@@ -365,77 +398,6 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
                         : const Text('Salvar animal'),
                   );
                 },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Photo upload placeholder
-// ---------------------------------------------------------------------------
-
-class _PhotoUploadArea extends StatelessWidget {
-  const _PhotoUploadArea({required this.species});
-
-  final AnimalSpecies species;
-
-  String get _assetPath => species == AnimalSpecies.cattle
-      ? 'assets/images/cow.png'
-      : 'assets/images/horse.png';
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // TODO: open image picker
-      },
-      child: Container(
-        height: 160,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.25),
-            width: 1.5,
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Opacity(
-                opacity: 0.45,
-                child: Image.asset(_assetPath, fit: BoxFit.cover),
-              ),
-              const ColoredBox(color: Color(0x1A000000)),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.add_photo_alternate_outlined,
-                    size: 36,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Adicionar fotos',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Toque para selecionar da galeria',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.white.withValues(alpha: 0.75)),
-                  ),
-                ],
               ),
             ],
           ),

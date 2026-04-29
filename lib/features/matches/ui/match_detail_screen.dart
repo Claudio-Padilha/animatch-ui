@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,23 +7,44 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/domain/animal_detail_data.dart';
 import '../domain/match_item.dart';
 import '../providers/match_provider.dart';
 
-Widget _animalPhoto(String path, {required double size}) {
-  if (path.isNotEmpty) {
-    return Image.asset(path, width: size, height: size, fit: BoxFit.cover);
-  }
+Widget _photoPlaceholder(double size, {String species = 'cattle'}) {
+  final asset = species == 'horse'
+      ? 'assets/images/horse.png'
+      : 'assets/images/cow.png';
   return Container(
     width: size,
     height: size,
     color: AppColors.primary.withValues(alpha: 0.08),
-    child: Icon(
-      Icons.pets,
-      size: size * 0.45,
-      color: AppColors.primary.withValues(alpha: 0.4),
+    child: Padding(
+      padding: EdgeInsets.all(size * 0.12),
+      child: Image.asset(asset, fit: BoxFit.contain),
     ),
   );
+}
+
+Widget _animalPhoto(String path, {required double size, String species = 'cattle'}) {
+  if (path.startsWith('http')) {
+    return CachedNetworkImage(
+      imageUrl: path,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      placeholder: (_, _) => Container(
+        width: size,
+        height: size,
+        color: AppColors.primary.withValues(alpha: 0.08),
+      ),
+      errorWidget: (_, _, _) => _photoPlaceholder(size, species: species),
+    );
+  }
+  if (path.isNotEmpty) {
+    return Image.asset(path, width: size, height: size, fit: BoxFit.cover);
+  }
+  return _photoPlaceholder(size, species: species);
 }
 
 class MatchDetailScreen extends ConsumerWidget {
@@ -70,13 +92,23 @@ class _AnimalPairWidget extends StatelessWidget {
 
   final MatchItem match;
 
+  void _openDetail(BuildContext context, MatchAnimal animal) {
+    context.push(
+      AppRoutes.matchAnimalDetail,
+      extra: AnimalDetailData.fromMatchAnimal(animal),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _AnimalPhotoWithName(animal: match.yourAnimal),
+        _AnimalPhotoWithName(
+          animal: match.yourAnimal,
+          onTap: () => _openDetail(context, match.yourAnimal),
+        ),
         Padding(
           padding: const EdgeInsets.only(top: 42),
           child: Container(
@@ -90,16 +122,20 @@ class _AnimalPairWidget extends StatelessWidget {
             child: const Icon(Icons.favorite, color: Colors.white, size: 18),
           ),
         ),
-        _AnimalPhotoWithName(animal: match.theirAnimal),
+        _AnimalPhotoWithName(
+          animal: match.theirAnimal,
+          onTap: () => _openDetail(context, match.theirAnimal),
+        ),
       ],
     );
   }
 }
 
 class _AnimalPhotoWithName extends StatelessWidget {
-  const _AnimalPhotoWithName({required this.animal});
+  const _AnimalPhotoWithName({required this.animal, required this.onTap});
 
   final MatchAnimal animal;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -107,9 +143,12 @@ class _AnimalPhotoWithName extends StatelessWidget {
       width: 120,
       child: Column(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: _animalPhoto(animal.imagePath, size: 120),
+          GestureDetector(
+            onTap: onTap,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: _animalPhoto(animal.imagePath, size: 120, species: animal.species),
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -210,6 +249,8 @@ class _AnimalCard extends StatelessWidget {
                 _InfoChip(icon: Icons.badge_outlined, text: animal.registry!),
               if (animal.location != null)
                 _InfoChip(icon: Icons.location_on_outlined, text: animal.location!),
+              if (animal.locationDirections != null)
+                _InfoChip(icon: Icons.map_outlined, text: animal.locationDirections!),
             ],
           ),
           if (animal.depPeso != null || animal.depConf != null) ...[

@@ -7,25 +7,33 @@ class MatchAnimal {
     this.id,
     required this.name,
     required this.breed,
-    this.imagePath = '',
+    this.species = 'cattle',
+    this.photoUrls = const [],
     this.age,
     this.score,
     this.registry,
     this.depPeso,
     this.depConf,
     this.location,
+    this.locationDirections,
+    this.description,
   });
 
   final String? id;
   final String name;
   final String breed; // e.g. "Nelore · Macho"
-  final String imagePath;
+  final String species;
+  final List<String> photoUrls;
   final int? age;
   final int? score;
   final String? registry;
   final double? depPeso;
   final double? depConf;
   final String? location;
+  final String? locationDirections;
+  final String? description;
+
+  String get imagePath => photoUrls.isNotEmpty ? photoUrls.first : '';
 
   factory MatchAnimal.fromJson(Map<String, dynamic> json) {
     final breedApiValue = json['breed'] as String? ?? '';
@@ -39,13 +47,28 @@ class MatchAnimal {
     final sexRaw = json['sex'] as String? ?? 'male';
     final sexLabel = sexRaw == 'male' ? 'Macho' : 'Fêmea';
 
+    final photoUrls = (json['photoUrls'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList() ??
+        [];
+
+    final address = json['address'] as Map<String, dynamic>?;
+    final city = address?['city'] as String? ?? '';
+    final state = address?['state'] as String? ?? '';
+    final location = [city, state].where((s) => s.isNotEmpty).join(', ');
+
     return MatchAnimal(
       id: json['id'] as String?,
       name: json['name'] as String,
       breed: '$breedLabel · $sexLabel',
+      species: json['species'] as String? ?? 'cattle',
+      photoUrls: photoUrls,
       age: (json['age'] as num?)?.toInt(),
       score: (json['qualityScore'] as num?)?.toInt(),
       registry: json['registrationNumber'] as String?,
+      location: location.isNotEmpty ? location : null,
+      locationDirections: address?['directions'] as String?,
+      description: json['description'] as String?,
     );
   }
 }
@@ -85,13 +108,16 @@ class MatchItem {
     Map<String, dynamic> json, {
     required String animalId,
   }) {
-    final first =
-        MatchAnimal.fromJson(json['firstAnimal'] as Map<String, dynamic>);
-    final second =
-        MatchAnimal.fromJson(json['secondAnimal'] as Map<String, dynamic>);
+    final firstJson = json['firstAnimal'] as Map<String, dynamic>;
+    final secondJson = json['secondAnimal'] as Map<String, dynamic>;
 
-    final yours = first.id == animalId ? first : second;
-    final theirs = first.id == animalId ? second : first;
+    final first = MatchAnimal.fromJson(firstJson);
+    final second = MatchAnimal.fromJson(secondJson);
+
+    final isFirst = first.id == animalId;
+    final yours = isFirst ? first : second;
+    final theirs = isFirst ? second : first;
+    final theirJson = isFirst ? secondJson : firstJson;
 
     return MatchItem(
       id: json['id'] as String,
@@ -99,7 +125,11 @@ class MatchItem {
       timeLabel: _timeLabelFrom(json['createdAt'] as String),
       yourAnimal: yours,
       theirAnimal: theirs,
-      contact: const MatchContact(breederName: '', phone: ''),
+      contact: MatchContact(
+        breederName: theirJson['breederName'] as String? ?? '',
+        phone: '',
+        email: theirJson['breederEmail'] as String?,
+      ),
     );
   }
 

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/breeder_associations_card.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../domain/breeder_profile.dart';
 import '../providers/profile_provider.dart';
 
@@ -16,6 +18,14 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Fetch GET /breeders/:id on load and sync result into auth state so
+    // profileProvider (which derives from authNotifierProvider) rebuilds with fresh data.
+    ref.listen(currentBreederProvider, (_, next) {
+      next.whenData(
+        (b) => ref.read(authNotifierProvider.notifier).updateBreeder(b),
+      );
+    });
+
     final profile = ref.watch(profileProvider);
 
     return Scaffold(
@@ -69,22 +79,29 @@ class _HeaderCard extends StatelessWidget {
       child: Column(
         children: [
           // Avatar
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.1),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.25),
-                width: 2,
-              ),
-            ),
-            child: Icon(
-              Icons.person_rounded,
-              size: 44,
-              color: AppColors.primary.withValues(alpha: 0.6),
-            ),
+          CircleAvatar(
+            radius: 44,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+            child: profile.avatarUrl != null
+                ? ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: profile.avatarUrl!,
+                      width: 88,
+                      height: 88,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                      errorWidget: (context, url, err) => Icon(
+                        Icons.person_rounded,
+                        size: 44,
+                        color: AppColors.primary.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  )
+                : Icon(
+                    Icons.person_rounded,
+                    size: 44,
+                    color: AppColors.primary.withValues(alpha: 0.6),
+                  ),
           ),
           const SizedBox(height: 14),
 

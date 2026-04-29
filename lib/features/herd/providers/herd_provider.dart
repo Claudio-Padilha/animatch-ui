@@ -73,6 +73,7 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
     String? registrationNumber,
     bool available = true,
     Map<String, double?> geneticIndices = const {},
+    List<String> imageUrls = const [],
   }) async {
     final breederId = ref.read(authNotifierProvider)!.id;
 
@@ -95,6 +96,7 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
       'age': ?age,
       if (registrationNumber != null && registrationNumber.isNotEmpty)
         'registrationNumber': registrationNumber,
+      if (imageUrls.isNotEmpty) 'photoUrls': imageUrls,
     };
 
     final filteredIndices = {
@@ -142,6 +144,7 @@ class UpdateAnimalNotifier extends AsyncNotifier<void> {
     String? registrationNumber,
     bool available = true,
     Map<String, double?> geneticIndices = const {},
+    List<String>? imageUrls,
   }) async {
     final payload = <String, dynamic>{
       'name': name,
@@ -161,6 +164,7 @@ class UpdateAnimalNotifier extends AsyncNotifier<void> {
       'age': ?age,
       if (registrationNumber != null && registrationNumber.isNotEmpty)
         'registration_number': registrationNumber,
+      if (imageUrls != null && imageUrls.isNotEmpty) 'photoUrls': imageUrls,
     };
 
     final filteredIndices = {

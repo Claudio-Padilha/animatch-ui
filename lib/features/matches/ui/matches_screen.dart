@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -75,7 +76,7 @@ class _MatchCard extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: _animalPhoto(match.theirAnimal.imagePath, size: 80),
+                child: _animalPhoto(match.theirAnimal.imagePath, size: 80, species: match.theirAnimal.species),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -118,20 +119,32 @@ class _MatchCard extends StatelessWidget {
   }
 }
 
-Widget _animalPhoto(String path, {required double size}) {
+Widget _animalPhoto(String path, {required double size, String species = 'cattle'}) {
+  final asset = species == 'horse' ? 'assets/images/horse.png' : 'assets/images/cow.png';
+  Widget placeholder() => Container(
+        width: size,
+        height: size,
+        color: AppColors.primary.withValues(alpha: 0.06),
+        child: Padding(
+          padding: EdgeInsets.all(size * 0.12),
+          child: Image.asset(asset, fit: BoxFit.contain),
+        ),
+      );
+
+  if (path.startsWith('http')) {
+    return CachedNetworkImage(
+      imageUrl: path,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      placeholder: (_, _) => Container(width: size, height: size, color: AppColors.primary.withValues(alpha: 0.06)),
+      errorWidget: (_, _, _) => placeholder(),
+    );
+  }
   if (path.isNotEmpty) {
     return Image.asset(path, width: size, height: size, fit: BoxFit.cover);
   }
-  return Container(
-    width: size,
-    height: size,
-    color: AppColors.primary.withValues(alpha: 0.06),
-    child: Icon(
-      Icons.image_outlined,
-      size: size * 0.42,
-      color: AppColors.primary.withValues(alpha: 0.30),
-    ),
-  );
+  return placeholder();
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -276,11 +277,27 @@ class _AnimalCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: animal.imagePaths.isNotEmpty
-                  ? Image.asset(
-                      animal.imagePaths.first,
+                  ? CachedNetworkImage(
+                      imageUrl: animal.imagePaths.first,
                       width: 64,
                       height: 64,
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        width: 64,
+                        height: 64,
+                        color: Colors.grey.shade100,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, err) => Image.asset(
+                        animal.species == AnimalSpecies.cattle
+                            ? 'assets/images/cow.png'
+                            : 'assets/images/horse.png',
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.contain,
+                      ),
                     )
                   : Image.asset(
                       animal.species == AnimalSpecies.cattle

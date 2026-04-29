@@ -1,14 +1,13 @@
-import 'dart:io';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:go_router/go_router.dart';
 
-import '../../../core/local/profile_picture_store.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/cloudinary_uploader.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/domain/breeder_association.dart';
 import '../../../shared/widgets/address_form_fields.dart';
@@ -36,19 +35,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   List<BreederAssociation> _associations = [];
   bool _isLoading = false;
+  String? _pictureUrl;
+  bool _isUploadingAvatar = false;
 
   Future<void> _pickPhoto() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-    if (picked == null) return;
-    await ref.read(profilePictureProvider.notifier).save(File(picked.path));
+    setState(() => _isUploadingAvatar = true);
+    try {
+      final url = await ref
+          .read(cloudinaryUploaderProvider)
+          .pickAndUpload(folder: 'breeders');
+      if (url != null && mounted) setState(() => _pictureUrl = url);
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
+    }
   }
 
   @override
   void initState() {
     super.initState();
+    ref.listenManual(currentBreederProvider, (_, next) {
+      next.whenData((b) {
+        ref.read(authNotifierProvider.notifier).updateBreeder(b);
+        if (mounted) setState(() => _pictureUrl = b.avatarUrl);
+      });
+    });
+    _pictureUrl = ref.read(authNotifierProvider)?.avatarUrl;
     final p = ref.read(profileProvider);
     _name = TextEditingController(text: p.name);
     _phone = TextEditingController(text: p.phone);
@@ -84,6 +95,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             farmName:
                 _farmName.text.trim().isEmpty ? null : _farmName.text.trim(),
             associations: _associations,
+            pictureUrl: _pictureUrl,
             directions:
                 _street.text.trim().isEmpty ? null : _street.text.trim(),
             zipCode: _zip.text.trim().isEmpty ? null : _zip.text.trim(),
@@ -129,8 +141,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
           children: [
             _AvatarSection(
-              picture: ref.watch(profilePictureProvider).value,
-              onTap: _pickPhoto,
+              pictureUrl: _pictureUrl,
+              isLoading: _isUploadingAvatar,
+              onTap: _isUploadingAvatar ? null : _pickPhoto,
             ),
             const SizedBox(height: 28),
             _SectionLabel('Dados pessoais'),
@@ -228,10 +241,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 // ─── Avatar section ───────────────────────────────────────────────────────────
 
 class _AvatarSection extends StatelessWidget {
-  const _AvatarSection({required this.picture, required this.onTap});
+  const _AvatarSection({
+    required this.pictureUrl,
+    required this.isLoading,
+    required this.onTap,
+  });
 
-  final File? picture;
-  final VoidCallback onTap;
+  final String? pictureUrl;
+  final bool isLoading;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -241,14 +259,26 @@ class _AvatarSection extends StatelessWidget {
           CircleAvatar(
             radius: 48,
             backgroundColor: AppColors.primary.withValues(alpha: 0.08),
-            backgroundImage: picture != null ? FileImage(picture!) : null,
-            child: picture == null
-                ? Icon(
+            child: pictureUrl != null
+                ? ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: pictureUrl!,
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const CircularProgressIndicator(strokeWidth: 2),
+                      errorWidget: (context, url, err) => Icon(
+                        Icons.person_rounded,
+                        size: 48,
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  )
+                : Icon(
                     Icons.person_rounded,
                     size: 48,
                     color: AppColors.primary.withValues(alpha: 0.4),
-                  )
-                : null,
+                  ),
           ),
           Positioned(
             right: 0,
@@ -262,11 +292,20 @@ class _AvatarSection extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                 ),
-                child: const Icon(
-                  Icons.camera_alt_rounded,
-                  size: 15,
-                  color: Colors.white,
-                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 15,
+                        height: 15,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.camera_alt_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      ),
               ),
             ),
           ),

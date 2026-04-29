@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
+import '../../../core/services/cloudinary_uploader.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/address_form_fields.dart';
+import '../../../shared/widgets/animal_photo_strip.dart';
 import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -46,6 +48,8 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
   late String? _selectedSexLabel;
   late bool _available;
   late bool _showDep;
+  late List<String> _photoUrls;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -58,6 +62,7 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
     _selectedSexLabel = a.sex; // stored as 'Macho' / 'Fêmea'
     _available = a.available;
     _showDep = indices != null && !indices.isEmpty;
+    _photoUrls = List<String>.from(a.imagePaths);
 
     _nameController = TextEditingController(text: a.name);
     _descriptionController = TextEditingController(text: a.description ?? '');
@@ -170,6 +175,27 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
     setState(() => _available = !isActive);
   }
 
+  Future<void> _handlePhotoPick() async {
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final url = await ref
+          .read(cloudinaryUploaderProvider)
+          .pickAndUpload(folder: 'animals');
+      if (url != null) setState(() => _photoUrls.add(url));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao fazer upload: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
+  }
+
   void _onSpeciesChanged(String? label) {
     if (label == null) return;
     setState(() {
@@ -201,6 +227,7 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
           age: age,
           registrationNumber: _registrationController.text.trim(),
           available: _available,
+          imageUrls: _photoUrls,
           geneticIndices: {
             'birth_weight':
                 double.tryParse(_birthWeightController.text.trim()),
@@ -268,7 +295,14 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // ── Photo ─────────────────────────────────────────────────
-              _PhotoArea(imagePath: widget.animal.imagePaths.firstOrNull),
+              _SectionLabel('Fotos'),
+              const SizedBox(height: 8),
+              AnimalPhotoStrip(
+                photoUrls: _photoUrls,
+                isLoading: _isUploadingPhoto,
+                onAdd: _handlePhotoPick,
+                onRemove: (i) => setState(() => _photoUrls.removeAt(i)),
+              ),
               const SizedBox(height: 24),
 
               // ── Nome ─────────────────────────────────────────────────
@@ -541,91 +575,6 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Photo area
-// ---------------------------------------------------------------------------
-
-class _PhotoArea extends StatelessWidget {
-  const _PhotoArea({required this.imagePath});
-
-  final String? imagePath;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // TODO: open image_picker
-      },
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: imagePath != null
-                ? Image.asset(
-                    imagePath!,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  )
-                : Container(
-                    height: 180,
-                    width: double.infinity,
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 40,
-                          color: AppColors.primary.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Adicionar fotos',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.primary.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-          Positioned(
-            right: 10,
-            bottom: 10,
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.camera_alt_rounded,
-                      color: Colors.white, size: 14),
-                  SizedBox(width: 5),
-                  Text(
-                    'Alterar foto',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

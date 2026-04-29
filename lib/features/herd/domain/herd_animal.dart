@@ -84,6 +84,9 @@ class HerdAnimal {
       species: species,
       score: (json['qualityScore'] as num?)?.toInt() ?? 0,
       available: (json['status'] as String?) == 'active',
+      imagePaths: (json['photoUrls'] as List<dynamic>? ?? [])
+          .map((e) => e as String)
+          .toList(),
       age: (json['age'] as num?)?.toInt(),
       registration: json['registration_number'] as String?,
       location: address != null

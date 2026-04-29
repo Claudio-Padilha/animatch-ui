@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/auth/ui/register_screen.dart';
-import '../../features/discover/domain/discover_animal.dart';
-import '../../features/discover/ui/animal_detail_screen.dart';
+import '../../shared/domain/animal_detail_data.dart';
+import '../../shared/screens/animal_detail_screen.dart';
 import '../../features/discover/ui/discover_screen.dart';
 import '../../features/herd/domain/herd_animal.dart';
 import '../../features/herd/ui/add_animal_screen.dart';
@@ -28,6 +28,7 @@ abstract final class AppRoutes {
   static const register = '/register';
   static const discover = '/';
   static const animalDetail = '/animal';
+  static const matchAnimalDetail = '/matches/animal';
   static const matches = '/matches';
   static const matchDetail = '/matches/detail';
   static const chat = '/matches/chat';
@@ -88,7 +89,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.animalDetail,
         builder: (_, state) => AnimalDetailScreen(
-          animal: state.extra! as DiscoverAnimal,
+          animal: state.extra! as AnimalDetailData,
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.matchAnimalDetail,
+        builder: (_, state) => AnimalDetailScreen(
+          animal: state.extra! as AnimalDetailData,
+          showCtas: false,
         ),
       ),
       GoRoute(

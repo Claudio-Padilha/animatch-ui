@@ -4,44 +4,40 @@ class DiscoverAnimal {
   const DiscoverAnimal({
     required this.id,
     required this.name,
+    required this.species,
     required this.breed,
     required this.sex,
-    required this.age,
     required this.score,
-    required this.distanceLabel,
-    required this.locationFull,
-    required this.breederName,
-    required this.isVerified,
-    required this.imagePaths,
-    required this.depWeight,
-    required this.depConf,
-    required this.registrationCode,
+    required this.photoUrls,
+    required this.locationCity,
+    required this.locationState,
+    this.locationDirections,
+    this.age,
+    this.registrationCode,
+    this.description,
     this.pendingMatchId,
   });
 
   final String id;
   final String name;
+  final String species;
   final String breed;
   final String sex;
-  final String age;
   final int score;
-  final String distanceLabel;
-  final String locationFull;
-  final String breederName;
-  final bool isVerified;
-  final List<String> imagePaths;
-  final double depWeight;
-  final double depConf;
-  final String registrationCode;
+  final List<String> photoUrls;
+  final String locationCity;
+  final String locationState;
+  final String? locationDirections;
+  final int? age;
+  final String? registrationCode;
+  final String? description;
   final String? pendingMatchId;
+
+  String get locationFull => '$locationCity, $locationState';
+  String get ageLabel => age != null ? '$age ${age == 1 ? 'ano' : 'anos'}' : '';
 
   factory DiscoverAnimal.fromJson(Map<String, dynamic> json) {
     final address = json['address'] as Map<String, dynamic>?;
-    final breeder = json['breeder'] as Map<String, dynamic>?;
-    final genetics = json['geneticIndices'] as Map<String, dynamic>?;
-    final distanceKm = (json['distanceKm'] as num?)?.toInt();
-    final state = address?['state'] as String?;
-    final ageInt = (json['age'] as num?)?.toInt();
 
     final breedApiValue = json['breed'] as String? ?? '';
     String breedLabel;
@@ -54,32 +50,25 @@ class DiscoverAnimal {
     final sexRaw = json['sex'] as String? ?? 'male';
     final sex = sexRaw == 'male' ? 'Macho' : 'Fêmea';
 
-    final imageUrls = (json['imageUrls'] as List<dynamic>?)
+    final photoUrls = (json['photoUrls'] as List<dynamic>?)
             ?.map((e) => e as String)
             .toList() ??
         [];
 
-    final distanceLabel = distanceKm != null
-        ? '~$distanceKm km${state != null ? ' · $state' : ''}'
-        : (state ?? '');
-
     return DiscoverAnimal(
       id: json['id'] as String,
       name: json['name'] as String,
+      species: json['species'] as String? ?? '',
       breed: breedLabel,
       sex: sex,
-      age: ageInt != null ? '$ageInt ${ageInt == 1 ? 'ano' : 'anos'}' : '',
       score: (json['qualityScore'] as num?)?.toInt() ?? 0,
-      distanceLabel: distanceLabel,
-      locationFull: address != null
-          ? '${address['city']}, ${address['state']}'
-          : '',
-      breederName: breeder?['name'] as String? ?? '',
-      isVerified: breeder?['isVerified'] as bool? ?? false,
-      imagePaths: imageUrls,
-      depWeight: (genetics?['depWeight'] as num?)?.toDouble() ?? 0.0,
-      depConf: (genetics?['depConf'] as num?)?.toDouble() ?? 0.0,
-      registrationCode: json['registrationNumber'] as String? ?? '',
+      photoUrls: photoUrls,
+      locationCity: address?['city'] as String? ?? '',
+      locationState: address?['state'] as String? ?? '',
+      locationDirections: address?['directions'] as String?,
+      age: (json['age'] as num?)?.toInt(),
+      registrationCode: json['registrationNumber'] as String?,
+      description: json['description'] as String?,
       pendingMatchId: json['pendingMatchId'] as String?,
     );
   }

@@ -12,6 +12,7 @@ class BreederProfile {
     required this.status,
     required this.associationId,
     this.associations = const [],
+    this.avatarUrl,
     required this.plan,
     required this.planRenewal,
   });
@@ -25,6 +26,7 @@ class BreederProfile {
   final BreederStatus status;
   final String associationId;
   final List<BreederAssociation> associations;
+  final String? avatarUrl;
 
   bool get isActive => status == BreederStatus.active;
   final String plan;
@@ -43,6 +45,7 @@ class BreederProfile {
     BreederStatus? status,
     String? associationId,
     List<BreederAssociation>? associations,
+    String? avatarUrl,
     String? plan,
     String? planRenewal,
   }) {
@@ -56,6 +59,7 @@ class BreederProfile {
       status: status ?? this.status,
       associationId: associationId ?? this.associationId,
       associations: associations ?? this.associations,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       plan: plan ?? this.plan,
       planRenewal: planRenewal ?? this.planRenewal,
     );

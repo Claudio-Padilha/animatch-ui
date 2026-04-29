@@ -16,6 +16,7 @@ import '../../herd/domain/herd_animal.dart';
 import '../../herd/providers/selected_animal_provider.dart';
 import '../../matches/domain/match_item.dart';
 import '../../matches/providers/match_provider.dart';
+import '../../../shared/domain/animal_detail_data.dart';
 import '../domain/discover_animal.dart';
 import '../providers/discover_provider.dart';
 
@@ -141,7 +142,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       cardBuilder: (context, index, _, _) => _AnimalSwipeCard(
         animal: animals[index],
         onTap: () =>
-            context.push(AppRoutes.animalDetail, extra: animals[index]),
+            context.push(AppRoutes.animalDetail, extra: AnimalDetailData.fromDiscoverAnimal(animals[index])),
       ),
     );
   }
@@ -216,8 +217,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         id: selected.id,
         name: selected.name,
         breed: '${selected.breed} · ${selected.sex}',
-        imagePath:
-            selected.imagePaths.isNotEmpty ? selected.imagePaths.first : '',
+        species: selected.species.apiValue,
+        photoUrls: selected.imagePaths,
         score: selected.score,
         registry: selected.registration,
         location: selected.location,
@@ -226,16 +227,15 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         id: animal.id,
         name: animal.name,
         breed: '${animal.breed} · ${animal.sex}',
-        imagePath: animal.imagePaths.isNotEmpty ? animal.imagePaths.first : '',
+        species: animal.species,
+        photoUrls: animal.photoUrls,
         score: animal.score,
-        registry:
-            animal.registrationCode.isNotEmpty ? animal.registrationCode : null,
-        depPeso: animal.depWeight != 0 ? animal.depWeight : null,
-        depConf: animal.depConf != 0 ? animal.depConf : null,
+        registry: animal.registrationCode,
         location: animal.locationFull.isNotEmpty ? animal.locationFull : null,
+        description: animal.description,
       ),
-      contact: MatchContact(
-        breederName: animal.breederName,
+      contact: const MatchContact(
+        breederName: '',
         phone: '',
       ),
     );
@@ -326,8 +326,8 @@ class _AnimalSwipeCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               const ColoredBox(color: Colors.black),
-              animal.imagePaths.isNotEmpty
-                  ? _photo(animal.imagePaths.first)
+              animal.photoUrls.isNotEmpty
+                  ? _photo(animal.photoUrls.first)
                   : const Icon(Icons.pets, color: Colors.white30, size: 64),
               const DecoratedBox(
                 decoration: BoxDecoration(
@@ -365,50 +365,17 @@ class _AnimalSwipeCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (animal.distanceLabel.isNotEmpty)
+                      if (animal.locationFull.isNotEmpty)
                         Row(
                           children: [
                             const Icon(Icons.location_on_outlined,
                                 color: Colors.white70, size: 15),
                             const SizedBox(width: 4),
                             Text(
-                              animal.distanceLabel,
+                              animal.locationFull,
                               style: GoogleFonts.inter(
                                   fontSize: 13, color: Colors.white70),
                             ),
-                          ],
-                        ),
-                      const SizedBox(height: 6),
-                      if (animal.breederName.isNotEmpty)
-                        Row(
-                          children: [
-                            const Icon(Icons.person_outline,
-                                color: Colors.white70, size: 15),
-                            const SizedBox(width: 4),
-                            Text(
-                              animal.breederName,
-                              style: GoogleFonts.inter(
-                                  fontSize: 13, color: Colors.white70),
-                            ),
-                            if (animal.isVerified) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.verifiedBadge,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  'Verificado',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                     ],
