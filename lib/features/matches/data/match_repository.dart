@@ -39,6 +39,17 @@ class MatchRepository {
   Future<void> deleteMatch(String matchId) =>
       _dio.delete<void>('/matches/$matchId');
 
+  Future<Map<String, dynamic>> getChatToken(
+    String matchId, {
+    required String breederId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/matches/$matchId/chat-token',
+      queryParameters: {'breederId': breederId},
+    );
+    return response.data ?? {};
+  }
+
   /// Returns the raw match payload (contains at minimum `id` and `status`).
   Future<Map<String, dynamic>> createMatch({
     required String firstLikeAnimalId,

@@ -43,6 +43,9 @@ dependencies:
   # Card swiper (Discover screen)
   flutter_card_swiper: ^7.0.1
 
+  # Chat
+  stream_chat_flutter: ^9.0.0
+
   # Deep links (WhatsApp, phone)
   url_launcher: ^6.3.1
 
