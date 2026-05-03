@@ -52,6 +52,12 @@ dependencies:
   # Image picker (animal photos)
   image_picker: ^1.1.2
 
+  # Push notifications
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.0.0
+  firebase_messaging: ^15.0.0
+  flutter_local_notifications: ^18.0.0
+
   # Local file storage (profile picture stub)
   path_provider: ^2.1.4
 

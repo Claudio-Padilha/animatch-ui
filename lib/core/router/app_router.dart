@@ -1,5 +1,9 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../services/notification_service.dart';
 
 import '../../features/auth/ui/login_screen.dart';
 import '../../features/auth/ui/register_screen.dart';
@@ -12,6 +16,7 @@ import '../../features/herd/ui/edit_animal_screen.dart';
 import '../../features/herd/ui/herd_screen.dart';
 import '../../features/herd/ui/my_animal_detail_screen.dart';
 import '../../features/matches/domain/match_item.dart';
+import '../../features/auth/ui/phone_verification_screen.dart';
 import '../../features/matches/ui/chat_screen.dart';
 import '../../features/matches/ui/match_detail_screen.dart';
 import '../../features/matches/ui/matches_screen.dart';
@@ -39,11 +44,19 @@ abstract final class AppRoutes {
   static const profile = '/perfil';
   static const editProfile = '/perfil/editar';
   static const profileVerification = '/perfil/verificacao';
+  static const phoneVerification = '/register/verificar-telefone';
+}
+
+void _handleNotificationTap(RemoteMessage message, GoRouter router) {
+  final type = message.data['type'] as String?;
+  if (type == 'match_confirmed' || type == 'new_message') {
+    router.go(AppRoutes.matches);
+  }
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = RouterNotifier(ref);
-  return GoRouter(
+  final router = GoRouter(
     refreshListenable: notifier,
     redirect: notifier.redirect,
     initialLocation: AppRoutes.onboarding,
@@ -61,6 +74,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.register,
         builder: (_, _) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.phoneVerification,
+        builder: (_, state) => PhoneVerificationScreen(
+          args: state.extra! as PhoneVerificationArgs,
+        ),
       ),
       GoRoute(
         path: AppRoutes.addAnimal,
@@ -137,4 +156,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  if (!kIsWeb) {
+    // Handle notification tap when app was terminated (cold start).
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) _handleNotificationTap(message, router);
+    });
+
+    // Handle notification tap when app was in background.
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      _handleNotificationTap(message, router);
+    });
+
+    // Handle tap on a local notification shown while app was in foreground.
+    ref.read(notificationServiceProvider).onLocalTap.listen((route) {
+      if (route != null) router.go(route);
+    });
+  }
+
+  return router;
 });

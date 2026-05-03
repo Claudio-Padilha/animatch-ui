@@ -34,8 +34,8 @@ class AuthNotifier extends Notifier<Breeder?> {
     state = breeder;
   }
 
-  Future<void> signUp({required String name, required String email}) async {
-    await _repository.signUp(name: name, email: email);
+  Future<void> signUp({required String name, required String email, String? phone}) async {
+    await _repository.signUp(name: name, email: email, phone: phone);
   }
 
   void updateBreeder(Breeder breeder) {

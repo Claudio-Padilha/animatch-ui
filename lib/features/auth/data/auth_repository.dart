@@ -52,9 +52,9 @@ class AuthRepository {
   //       .webAuthentication()
   //       .login(parameters: {'screen_hint': 'signup'});
   //   return _syncWithBackend(_Auth0Result.fromCredentials(credentials));
-  Future<Breeder> signUp({required String name, required String email}) async {
+  Future<Breeder> signUp({required String name, required String email, String? phone}) async {
     final credentials = await _mockAuth0SignUp(name: name, email: email);
-    return _syncWithBackend(credentials);
+    return _syncWithBackend(credentials, phone: phone);
   }
 
   // ── Mock Auth0 ─────────────────────────────────────────────────────────────
@@ -89,6 +89,7 @@ class AuthRepository {
   Future<Breeder> _syncWithBackend(
     _Auth0Result credentials, {
     bool sendName = true,
+    String? phone,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/auth/sync-breeder',
@@ -96,6 +97,7 @@ class AuthRepository {
         'sub': credentials.sub,
         'email': credentials.email,
         if (sendName) 'name': credentials.name,
+        'phone': ?phone,
       },
       options: Options(
         headers: {'Authorization': 'Bearer ${credentials.accessToken}'},

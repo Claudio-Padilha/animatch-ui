@@ -19,6 +19,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _isLoading = false;
@@ -29,27 +30,40 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
   }
 
+  // Normalises Brazilian phone numbers to E.164 format (+5511999999999).
+  static String _toE164(String input) {
+    final digits = input.replaceAll(RegExp(r'\D'), '');
+    if (input.startsWith('+')) return '+$digits';
+    if (digits.startsWith('55') && digits.length == 13) return '+$digits';
+    if (digits.length == 11) return '+55$digits';
+    return '+55$digits';
+  }
+
   Future<void> _signUp() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _toE164(_phoneController.text.trim());
+
     setState(() => _isLoading = true);
+
+    // TODO: re-enable phone verification when ready.
+    // See phone_verification_screen.dart and AppRoutes.phoneVerification.
     try {
-      await ref.read(authNotifierProvider.notifier).signUp(
-            name: _nameController.text.trim(),
-            email: _emailController.text.trim(),
-          );
+      await ref.read(authNotifierProvider.notifier).signUp(name: name, email: email, phone: phone);
       if (!mounted) return;
       context.go(AppRoutes.login);
     } on DioException catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível criar a conta. Verifique seus dados e tente novamente.'),
-        ),
+        const SnackBar(content: Text('Não foi possível criar a conta. Verifique seus dados e tente novamente.')),
       );
     } catch (_) {
       if (!mounted) return;
@@ -112,6 +126,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Campo obrigatório';
                   if (!v.contains('@')) return 'E-mail inválido';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // ── Celular ──────────────────────────────────────────────────────
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Celular',
+                  hintText: '(11) 99999-9999',
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Campo obrigatório';
+                  final digits = v.replaceAll(RegExp(r'\D'), '');
+                  if (digits.length < 10) return 'Número inválido';
                   return null;
                 },
               ),
