@@ -30,6 +30,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["auth0Domain"] = "dev-akrxwodm47ylsucp.us.auth0.com"
+        manifestPlaceholders["auth0Scheme"] = "com.animatch.animatch"
     }
 
     buildTypes {

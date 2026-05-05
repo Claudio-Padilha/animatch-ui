@@ -16,12 +16,12 @@ import '../../features/herd/ui/edit_animal_screen.dart';
 import '../../features/herd/ui/herd_screen.dart';
 import '../../features/herd/ui/my_animal_detail_screen.dart';
 import '../../features/matches/domain/match_item.dart';
-import '../../features/auth/ui/phone_verification_screen.dart';
 import '../../features/matches/ui/chat_screen.dart';
 import '../../features/matches/ui/match_detail_screen.dart';
 import '../../features/matches/ui/matches_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/profile/ui/edit_profile_screen.dart';
+import '../../features/profile/ui/profile_completion_screen.dart';
 import '../../features/profile/ui/profile_screen.dart';
 import '../../features/profile/ui/profile_verification_screen.dart';
 import '../../shared/widgets/app_shell.dart';
@@ -41,10 +41,10 @@ abstract final class AppRoutes {
   static const addAnimal = '/rebanho/novo';
   static const myAnimalDetail = '/rebanho/animal';
   static const editAnimal = '/rebanho/animal/editar';
+  static const profileCompletion = '/completar-perfil';
   static const profile = '/perfil';
   static const editProfile = '/perfil/editar';
   static const profileVerification = '/perfil/verificacao';
-  static const phoneVerification = '/register/verificar-telefone';
 }
 
 void _handleNotificationTap(RemoteMessage message, GoRouter router) {
@@ -76,12 +76,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const RegisterScreen(),
       ),
       GoRoute(
-        path: AppRoutes.phoneVerification,
-        builder: (_, state) => PhoneVerificationScreen(
-          args: state.extra! as PhoneVerificationArgs,
-        ),
-      ),
-      GoRoute(
         path: AppRoutes.addAnimal,
         builder: (_, _) => const AddAnimalScreen(),
       ),
@@ -96,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => EditAnimalScreen(
           animal: state.extra! as HerdAnimal,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.profileCompletion,
+        builder: (_, _) => const ProfileCompletionScreen(),
       ),
       GoRoute(
         path: AppRoutes.editProfile,

@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../features/auth/providers/auth_provider.dart';
+import '../../../shared/widgets/unverified_profile_prompt.dart';
 import '../../herd/providers/selected_animal_provider.dart';
 import '../domain/match_item.dart';
 import '../providers/match_provider.dart';
@@ -17,6 +19,14 @@ class MatchesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isVerified = ref.watch(authNotifierProvider)?.verifiedBreeder ?? false;
+    if (!isVerified) {
+      return Scaffold(
+        appBar: _appBar(context),
+        body: const UnverifiedProfilePrompt(),
+      );
+    }
+
     final selected = ref.watch(selectedAnimalProvider);
 
     if (selected == null) {

@@ -26,7 +26,6 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Register / unregister FCM token whenever auth state changes.
     ref.listen<Breeder?>(authNotifierProvider, (prev, next) {
       if (next != null && prev == null) _onLogin();
       if (next == null && prev != null) _onLogout();

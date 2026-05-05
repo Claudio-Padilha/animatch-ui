@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
@@ -36,15 +37,15 @@ const _slides = [
     headline: 'Genética de elite,\na distância certa.',
     subheadline:
         'Veja animais disponíveis perto de você e reduza os custos de transporte.',
-    topColor: Color(0xFF0D2105),
-    bottomColor: Color(0xFF2D5016),
+    topColor: Colors.white,
+    bottomColor: Colors.white,
   ),
   _Slide(
     headline: 'Criadores verificados,\nnegociações confiáveis.',
     subheadline:
         'Criadores validados pela ABCZ, ABQM e demais associações de raça.',
-    topColor: Color(0xFF3D2A00),
-    bottomColor: Color(0xFFC8860A),
+    topColor: Colors.white,
+    bottomColor: Colors.white,
   ),
 ];
 
@@ -247,30 +248,27 @@ class _SlideBackground extends StatelessWidget {
     );
   }
 
-  // Slide 0 — Matching concept
-  // Square image (horse + bull + DNA helix) — cover fills the portrait area.
+  // Slide 0 — Brand splash with logo + wordmark
   List<Widget> _matchingIllustration(double w, double h) => [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/onboarding_1.jpg',
-            fit: BoxFit.contain,
-            alignment: Alignment.center,
-          ),
-        ),
-        // Light top scrim so the Skip button stays readable over the pale background
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: h * 0.22,
-          child: const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0x33000000), Colors.transparent],
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/images/animatch_icon.png',
+                width: w * 0.45,
+                height: w * 0.45,
               ),
-            ),
+              const SizedBox(height: 20),
+              Text(
+                'Animatch',
+                style: GoogleFonts.merriweather(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
           ),
         ),
       ];

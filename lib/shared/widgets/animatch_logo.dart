@@ -13,7 +13,11 @@ class AnimatchLogo extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.pets, color: AppColors.primary, size: size),
+        Image.asset(
+          'assets/images/animatch_icon.png',
+          width: size,
+          height: size,
+        ),
         const SizedBox(width: 8),
         Text(
           'Animatch',

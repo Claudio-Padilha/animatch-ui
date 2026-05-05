@@ -17,6 +17,8 @@ import '../../herd/providers/selected_animal_provider.dart';
 import '../../matches/domain/match_item.dart';
 import '../../matches/providers/match_provider.dart';
 import '../../../shared/domain/animal_detail_data.dart';
+import '../../../shared/widgets/unverified_profile_prompt.dart';
+import '../../../features/auth/providers/auth_provider.dart';
 import '../domain/discover_animal.dart';
 import '../providers/discover_provider.dart';
 
@@ -41,6 +43,15 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isVerified = ref.watch(authNotifierProvider)?.verifiedBreeder ?? false;
+    if (!isVerified) {
+      return Scaffold(
+        backgroundColor: AppColors.surface,
+        appBar: _buildAppBar(context),
+        body: const UnverifiedProfilePrompt(),
+      );
+    }
+
     final selected = ref.watch(selectedAnimalProvider);
 
     if (selected == null) {
@@ -529,7 +540,7 @@ class _NoAnimalSelected extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.pets,
+              Icons.account_tree_outlined,
               size: 64,
               color: AppColors.muted.withValues(alpha: 0.4),
             ),

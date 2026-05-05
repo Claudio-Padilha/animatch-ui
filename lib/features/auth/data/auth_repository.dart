@@ -1,108 +1,102 @@
+import 'package:auth0_flutter/auth0_flutter.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/auth/dev_token_service.dart';
+import '../../../core/config/auth0_config.dart';
+import '../../../core/network/api_client.dart';
 import '../domain/breeder.dart';
 
-// ── Internal DTO ─────────────────────────────────────────────────────────────
-
-class _Auth0Result {
-  const _Auth0Result({
-    required this.sub,
-    required this.email,
-    required this.name,
-    required this.accessToken,
-  });
-
-  final String sub;
-  final String email;
-  final String name;
-  final String accessToken;
-}
-
-// ── Repository ────────────────────────────────────────────────────────────────
-
 class AuthRepository {
-  const AuthRepository(this._dio);
+  AuthRepository(this._dio)
+      : _auth0 = Auth0(Auth0Config.domain, Auth0Config.clientId);
 
   final Dio _dio;
+  final Auth0 _auth0;
 
-  // DEV-ONLY login flow.
-  // Derives a stable sub from the email and calls /auth/sync-breeder without
-  // a name field so the backend treats it as a lookup (not a create).
-  //
-  // REPLACE with real Auth0 when integrating:
-  //   final credentials = await Auth0().webAuthentication().login();
-  //   return _syncWithBackend(_Auth0Result.fromCredentials(credentials));
-  Future<Breeder> login({required String email, String? name}) async {
-    final sub = DevTokenService.subFromEmail(email);
-    final credentials = _Auth0Result(
-      sub: sub,
-      email: email,
-      name: name ?? email,
-      accessToken: DevTokenService.buildFromCredentials(
-          sub: sub, email: email, name: name ?? email),
-    );
-    return _syncWithBackend(credentials, sendName: name != null);
+  Future<Breeder> login() async {
+    final credentials = await _auth0
+        .webAuthentication(scheme: Auth0Config.scheme)
+        .login(
+          audience: Auth0Config.audience,
+          scopes: {'openid', 'profile', 'email', 'offline_access'},
+          parameters: {'prompt': 'login'},
+        );
+    try {
+      // Returning user — fetch existing profile (empty body, sub comes from JWT).
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/sync-breeder',
+        data: <String, dynamic>{},
+      );
+      return Breeder.fromJson(response.data!);
+    } on DioException catch (e) {
+      // No backend account yet — let profile completion create it.
+      if (e.response?.statusCode == 422 || e.response?.statusCode == 404) {
+        return _breederFromCredentials(credentials);
+      }
+      rethrow;
+    }
   }
 
-  // DEV-ONLY register flow.
-  //
-  // REPLACE with real Auth0 when integrating:
-  //   final credentials = await Auth0()
-  //       .webAuthentication()
-  //       .login(parameters: {'screen_hint': 'signup'});
-  //   return _syncWithBackend(_Auth0Result.fromCredentials(credentials));
-  Future<Breeder> signUp({required String name, required String email, String? phone}) async {
-    final credentials = await _mockAuth0SignUp(name: name, email: email);
-    return _syncWithBackend(credentials, phone: phone);
+  Future<Breeder> signUp() async {
+    final credentials = await _auth0
+        .webAuthentication(scheme: Auth0Config.scheme)
+        .login(
+          audience: Auth0Config.audience,
+          scopes: {'openid', 'profile', 'email', 'offline_access'},
+          parameters: {'screen_hint': 'signup', 'prompt': 'login'},
+        );
+    // Don't sync to backend yet — profile completion handles that.
+    return _breederFromCredentials(credentials);
   }
 
-  // ── Mock Auth0 ─────────────────────────────────────────────────────────────
-  // Simulates the Auth0 webAuthentication flow locally.
-  // App scheme for real Auth0 redirect: 'com.animatch.animatch'
-  // DELETE this method when Auth0 is wired up.
-
-  static Future<_Auth0Result> _mockAuth0SignUp({
+  Future<Breeder> syncBreeder({
     required String name,
-    required String email,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    final sub = DevTokenService.subFromEmail(email);
-    return _Auth0Result(
-      sub: sub,
-      email: email,
-      name: name,
-      accessToken: DevTokenService.buildFromCredentials(
-          sub: sub, email: email, name: name),
-    );
-  }
-
-  // ── Backend sync ───────────────────────────────────────────────────────────
-  // POST /auth/sync-breeder
-  // Creates or updates the breeder record on the backend.
-  // sendName=true  → upsert  (register)
-  // sendName=false → lookup  (login — backend should 404 if not found)
-  //
-  // In production the backend verifies the Auth0 access token signature
-  // before syncing. The dev stub token is accepted only in non-prod envs.
-
-  Future<Breeder> _syncWithBackend(
-    _Auth0Result credentials, {
-    bool sendName = true,
-    String? phone,
+    required String city,
+    required String state,
+    required String zipCode,
+    String? directions,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/auth/sync-breeder',
       data: {
-        'sub': credentials.sub,
-        'email': credentials.email,
-        if (sendName) 'name': credentials.name,
-        'phone': ?phone,
+        'name': name,
+        'address': {
+          'city': city,
+          'state': state,
+          'zipCode': zipCode,
+          if (directions != null && directions.isNotEmpty)
+            'directions': directions,
+        },
       },
-      options: Options(
-        headers: {'Authorization': 'Bearer ${credentials.accessToken}'},
-      ),
     );
-    return Breeder.fromJson(response.data!);
+    final breeder = Breeder.fromJson(response.data!);
+    // Merge city/state from form in case the response omits them.
+    return breeder.city != null
+        ? breeder
+        : breeder.copyWith(city: city, state: state);
+  }
+
+  Future<void> logout() async {
+    await _auth0.webAuthentication(scheme: Auth0Config.scheme).logout();
+  }
+
+  Future<String?> getFreshToken() async {
+    try {
+      final credentials = await _auth0.credentialsManager.credentials();
+      return credentials.accessToken;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Breeder _breederFromCredentials(Credentials credentials) {
+    final sub = credentials.user.sub;
+    final email = credentials.user.email ?? sub;
+    final name = credentials.user.name ?? credentials.user.nickname ?? email;
+    return Breeder(id: sub, name: name, email: email);
   }
 }
+
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => AuthRepository(ref.watch(dioProvider)),
+);

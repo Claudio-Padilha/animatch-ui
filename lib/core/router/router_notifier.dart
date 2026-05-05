@@ -13,7 +13,8 @@ class RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
   String? redirect(BuildContext context, GoRouterState state) {
-    final isLoggedIn = _ref.read(authNotifierProvider) != null;
+    final breeder = _ref.read(authNotifierProvider);
+    final isLoggedIn = breeder != null;
     final loc = state.matchedLocation;
 
     final isPublic = loc == AppRoutes.onboarding ||
@@ -21,7 +22,22 @@ class RouterNotifier extends ChangeNotifier {
         loc == AppRoutes.register;
 
     if (!isLoggedIn && !isPublic) return AppRoutes.onboarding;
-    if (isLoggedIn && isPublic) return AppRoutes.discover;
+
+    if (isLoggedIn) {
+      final needsCompletion =
+          breeder.city == null || breeder.city!.trim().isEmpty;
+      if (needsCompletion && loc != AppRoutes.profileCompletion) {
+        return AppRoutes.profileCompletion;
+      }
+      if (!needsCompletion &&
+          (isPublic || loc == AppRoutes.profileCompletion)) {
+        return AppRoutes.discover;
+      }
+      if (loc == AppRoutes.editProfile && !breeder.verifiedBreeder) {
+        return AppRoutes.profile;
+      }
+    }
+
     return null;
   }
 }

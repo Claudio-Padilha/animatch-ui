@@ -1,13 +1,12 @@
-import 'dart:io';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/local/profile_picture_store.dart';
 import '../../../core/router/app_router.dart';
+import '../../../core/services/cloudinary_uploader.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/domain/breeder_association.dart';
 import '../../../shared/widgets/address_form_fields.dart';
@@ -30,61 +29,58 @@ class _ProfileVerificationScreenState
   final _formKey = GlobalKey<FormState>();
 
   List<BreederAssociation> _associations = [];
-  final _name = TextEditingController();
   final _farmName = TextEditingController();
   final _phone = TextEditingController();
   final _cpf = TextEditingController();
-  final _street = TextEditingController();
-  final _city = TextEditingController();
-  final _stateCtrl = TextEditingController();
-  final _zip = TextEditingController();
 
+  String? _pictureUrl;
+  bool _isUploadingPhoto = false;
   bool _isSubmitting = false;
 
   @override
-  void initState() {
-    super.initState();
-    final breeder = ref.read(authNotifierProvider);
-    if (breeder != null) _name.text = breeder.name;
-  }
-
-  @override
   void dispose() {
-    _name.dispose();
     _farmName.dispose();
     _phone.dispose();
     _cpf.dispose();
-    _street.dispose();
-    _city.dispose();
-    _stateCtrl.dispose();
-    _zip.dispose();
     super.dispose();
   }
 
   Future<void> _pickPhoto() async {
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-    if (picked == null) return;
-    await ref.read(profilePictureProvider.notifier).save(File(picked.path));
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final url = await ref
+          .read(cloudinaryUploaderProvider)
+          .pickAndUpload(folder: 'breeders', source: ImageSource.camera);
+      if (url != null) setState(() => _pictureUrl = url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao enviar foto: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_pictureUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Adicione uma foto para continuar.')),
+      );
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
+      final name = ref.read(authNotifierProvider)!.name;
       await ref.read(profileProvider.notifier).activate(
-            name: _name.text.trim(),
+            name: name,
             phone: _phone.text.trim(),
             cpf: _cpf.text.trim().isEmpty ? null : _cpf.text.trim(),
             farmName: _farmName.text.trim().isEmpty ? null : _farmName.text.trim(),
             associations: _associations,
-            pictureUrl: ref.read(profilePictureProvider).value?.path,
-            directions: _street.text.trim(),
-            zipCode: _zip.text.trim(),
-            city: _city.text.trim(),
-            state: _stateCtrl.text.trim(),
+            pictureUrl: _pictureUrl,
           );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,7 +102,7 @@ class _ProfileVerificationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final picture = ref.watch(profilePictureProvider).value;
+    final name = ref.watch(authNotifierProvider)?.name ?? '';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Verificar Perfil')),
@@ -116,84 +112,82 @@ class _ProfileVerificationScreenState
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
           children: [
             _SectionLabel('Foto de perfil'),
-          const SizedBox(height: 16),
-          Center(
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 52,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.08),
-                  backgroundImage:
-                      picture != null ? FileImage(picture) : null,
-                  child: picture == null
-                      ? Icon(
-                          Icons.person_rounded,
-                          size: 52,
-                          color: AppColors.primary.withValues(alpha: 0.4),
-                        )
-                      : null,
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: GestureDetector(
-                    onTap: _pickPhoto,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_rounded,
-                        size: 16,
-                        color: Colors.white,
+            const SizedBox(height: 16),
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 52,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                    backgroundImage: _pictureUrl != null
+                        ? CachedNetworkImageProvider(_pictureUrl!)
+                        : null,
+                    child: _isUploadingPhoto
+                        ? const CircularProgressIndicator()
+                        : _pictureUrl == null
+                            ? Icon(
+                                Icons.person_rounded,
+                                size: 52,
+                                color: AppColors.primary.withValues(alpha: 0.4),
+                              )
+                            : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _isUploadingPhoto ? null : _pickPhoto,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: TextButton(
-              onPressed: _pickPhoto,
-              child: const Text('Carregar foto'),
+            const SizedBox(height: 10),
+            Center(
+              child: Text(
+                name,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          _SectionLabel('Dados pessoais'),
-          const SizedBox(height: 12),
-          _Field(
-            controller: _name,
-            label: 'Nome completo',
-            icon: Icons.person_outline_rounded,
-            textCapitalization: TextCapitalization.words,
-            validator: _required,
-          ),
-          const SizedBox(height: 16),
-          _Field(
-            controller: _farmName,
-            label: 'Nome da fazenda (opcional)',
-            icon: Icons.agriculture_outlined,
-            textCapitalization: TextCapitalization.words,
-          ),
-          const SizedBox(height: 16),
-          _Field(
-            controller: _phone,
-            label: 'Telefone / WhatsApp',
-            hint: '(00) 90000-0000',
-            icon: Icons.phone_outlined,
-            keyboardType: TextInputType.phone,
-            validator: _required,
-          ),
-          const SizedBox(height: 28),
-          _SectionLabel('Associações'),
+            const SizedBox(height: 4),
+            Center(
+              child: TextButton(
+                onPressed: _pickPhoto,
+                child: const Text('Tirar foto'),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _SectionLabel('Dados pessoais'),
             const SizedBox(height: 12),
-            AssociationsPicker(
-              onChanged: (list) => setState(() => _associations = list),
+            _Field(
+              controller: _farmName,
+              label: 'Nome da fazenda (opcional)',
+              icon: Icons.agriculture_outlined,
+              textCapitalization: TextCapitalization.words,
+            ),
+            const SizedBox(height: 16),
+            _Field(
+              controller: _phone,
+              label: 'Telefone / WhatsApp',
+              hint: '(00) 90000-0000',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+              validator: _required,
             ),
             const SizedBox(height: 28),
             _SectionLabel('CPF'),
@@ -215,14 +209,10 @@ class _ProfileVerificationScreenState
               },
             ),
             const SizedBox(height: 28),
-            _SectionLabel('Endereço'),
+            _SectionLabel('Associações'),
             const SizedBox(height: 12),
-            AddressFormFields(
-              streetController: _street,
-              cityController: _city,
-              stateController: _stateCtrl,
-              zipController: _zip,
-              required: true,
+            AssociationsPicker(
+              onChanged: (list) => setState(() => _associations = list),
             ),
             const SizedBox(height: 36),
             FilledButton(
@@ -311,4 +301,3 @@ class _Field extends StatelessWidget {
     );
   }
 }
-

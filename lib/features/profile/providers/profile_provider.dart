@@ -39,10 +39,6 @@ class ProfileNotifier extends Notifier<BreederProfile> {
     String? farmName,
     List<BreederAssociation> associations = const [],
     String? pictureUrl,
-    required String directions,
-    required String zipCode,
-    required String city,
-    required String state,
   }) async {
     final breederId = ref.read(authNotifierProvider)!.id;
     final updated = await ref.read(profileRepositoryProvider).activate(
@@ -53,20 +49,13 @@ class ProfileNotifier extends Notifier<BreederProfile> {
           farmName: farmName,
           associations: associations,
           pictureUrl: pictureUrl,
-          directions: directions,
-          zipCode: zipCode,
-          city: city,
-          state: state,
         );
-    // A successful PATCH means the backend accepted the activation.
-    // Force status=active locally so the UI reflects it immediately,
-    // regardless of whether the API echoes the status field back.
-    // TODO: remove the copyWith once the backend reliably returns status:'active'
+    final current = ref.read(authNotifierProvider);
     ref.read(authNotifierProvider.notifier).updateBreeder(
           updated.copyWith(
             status: BreederStatus.active,
-            city: city,
-            state: state,
+            city: current?.city,
+            state: current?.state,
           ),
         );
   }

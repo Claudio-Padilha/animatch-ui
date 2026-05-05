@@ -15,32 +15,22 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _obscurePassword = true;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
 
   Future<void> _login() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isLoading = true);
     try {
-      await ref.read(authNotifierProvider.notifier).login(
-            email: _emailController.text.trim(),
-          );
-      // RouterNotifier handles navigation once auth state is set
-    } catch (_) {
+      await ref.read(authNotifierProvider.notifier).login();
+    } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('E-mail ou senha inválidos.')),
-      );
+      // User cancelled the browser — don't show an error.
+      final cancelled = e.toString().contains('UserCancelled') ||
+          e.toString().contains('user_cancelled');
+      if (!cancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível entrar. Tente novamente.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -60,85 +50,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: EdgeInsets.fromLTRB(28, 8, 28, 24 + bottomInset),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const AnimatchLogo(),
-              const SizedBox(height: 32),
-              Text('Bem-vindo de volta', style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 8),
-              Text(
-                'Entre para acessar a sua conta.',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.muted),
-              ),
-              const SizedBox(height: 28),
-
-              // ── E-mail ───────────────────────────────────────────────────────
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'E-mail'),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Campo obrigatório';
-                  if (!v.contains('@')) return 'E-mail inválido';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // ── Senha ────────────────────────────────────────────────────────
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _login(),
-                decoration: InputDecoration(
-                  labelText: 'Senha',
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      color: AppColors.muted,
-                    ),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                ),
-                validator: (v) =>
-                    (v == null || v.isEmpty) ? 'Campo obrigatório' : null,
-              ),
-              const SizedBox(height: 28),
-
-              // ── Primary CTA ──────────────────────────────────────────────────
-              FilledButton(
-                onPressed: _isLoading ? null : _login,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Entrar'),
-              ),
-              const SizedBox(height: 16),
-
-              // ── Register link ────────────────────────────────────────────────
-              OutlinedButton(
-                onPressed: _isLoading ? null : () => context.go(AppRoutes.register),
-                child: const Text('Criar conta gratuita'),
-              ),
-            ],
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 32),
+            const AnimatchLogo(size: 44),
+            const SizedBox(height: 40),
+            Text(
+              'Bem-vindo de volta',
+              style: theme.textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Entre para acessar a sua conta.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+            const Spacer(flex: 2),
+            FilledButton(
+              onPressed: _isLoading ? null : _login,
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Entrar'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _isLoading ? null : () => context.go(AppRoutes.register),
+              child: const Text('Criar conta gratuita'),
+            ),
+            const Spacer(),
+          ],
         ),
       ),
     );

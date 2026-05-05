@@ -27,21 +27,23 @@ class ProfileScreen extends ConsumerWidget {
     });
 
     final profile = ref.watch(profileProvider);
+    final isVerified = ref.watch(authNotifierProvider)?.verifiedBreeder ?? false;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Meu Perfil'),
         actions: [
-          TextButton(
-            onPressed: () => context.push(AppRoutes.editProfile),
-            child: Text(
-              'Editar',
-              style: GoogleFonts.inter(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
+          if (isVerified)
+            TextButton(
+              onPressed: () => context.push(AppRoutes.editProfile),
+              child: Text(
+                'Editar',
+                style: GoogleFonts.inter(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
         ],
       ),
       body: ListView(

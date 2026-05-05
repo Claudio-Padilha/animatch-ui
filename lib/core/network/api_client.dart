@@ -1,8 +1,9 @@
+import 'package:auth0_flutter/auth0_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../features/auth/providers/auth_provider.dart';
 import '../config/app_env.dart';
+import '../config/auth0_config.dart';
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
@@ -12,16 +13,23 @@ final dioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 10),
     ),
   );
+
+  final auth0 = Auth0(Auth0Config.domain, Auth0Config.clientId);
+
   dio.interceptors.add(
     InterceptorsWrapper(
-      onRequest: (options, handler) {
-        final token = ref.read(accessTokenProvider);
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
+      onRequest: (options, handler) async {
+        try {
+          final credentials = await auth0.credentialsManager.credentials();
+          options.headers['Authorization'] = 'Bearer ${credentials.accessToken}';
+        } catch (_) {
+          // Not logged in — request proceeds without auth header.
+          // The backend will return 401 for protected routes.
         }
         handler.next(options);
       },
     ),
   );
+
   return dio;
 });

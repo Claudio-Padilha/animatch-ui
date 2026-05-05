@@ -35,10 +35,6 @@ class ProfileRepository {
     String? farmName,
     List<BreederAssociation> associations = const [],
     String? pictureUrl,
-    required String directions,
-    required String zipCode,
-    required String city,
-    required String state,
   }) async {
     final response = await _dio.patch<Map<String, dynamic>>(
       '/breeders/$breederId/activate',
@@ -51,12 +47,6 @@ class ProfileRepository {
         if (associations.isNotEmpty)
           'associations': associations.map((a) => a.toJson()).toList(),
         'pictureUrl': ?pictureUrl,
-        'address': {
-          'directions': directions,
-          'zipCode': zipCode,
-          'city': city,
-          'state': state,
-        },
       },
     );
     return Breeder.fromJson(response.data!);

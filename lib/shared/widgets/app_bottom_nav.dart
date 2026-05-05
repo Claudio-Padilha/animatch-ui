@@ -6,7 +6,7 @@ import '../../core/theme/app_theme.dart';
 
 abstract final class AppNavTabs {
   static final tabs = [
-    (label: 'Descobrir', icon: Icons.explore_outlined, route: AppRoutes.discover),
+    (label: 'Explorar', icon: Icons.explore_outlined, route: AppRoutes.discover),
     (label: 'Matches', icon: Icons.favorite_outline, route: AppRoutes.matches),
     (label: 'Meu Rebanho', icon: Icons.format_list_bulleted_outlined, route: AppRoutes.herd),
     (label: 'Perfil', icon: Icons.account_circle_outlined, route: AppRoutes.profile),

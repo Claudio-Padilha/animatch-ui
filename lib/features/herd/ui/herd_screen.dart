@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../features/auth/providers/auth_provider.dart';
+import '../../../shared/widgets/unverified_profile_prompt.dart';
 import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
 import '../providers/herd_provider.dart';
@@ -19,6 +21,14 @@ class HerdScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isVerified = ref.watch(authNotifierProvider)?.verifiedBreeder ?? false;
+    if (!isVerified) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Meu Rebanho')),
+        body: const UnverifiedProfilePrompt(),
+      );
+    }
+
     final selected = ref.watch(selectedAnimalProvider);
     final animalsAsync = ref.watch(herdProvider);
 
@@ -396,7 +406,7 @@ class _SelectButton extends StatelessWidget {
           border: Border.all(color: AppColors.primary),
         ),
         child: const Text(
-          'Buscar par',
+          'Selecionar',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
