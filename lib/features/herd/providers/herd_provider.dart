@@ -68,7 +68,6 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
     required String city,
     required String state,
     String? description,
-    int? qualityScore,
     int? age,
     String? registrationNumber,
     bool available = true,
@@ -92,7 +91,6 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
       },
       if (description != null && description.isNotEmpty)
         'description': description,
-      'qualityScore': ?qualityScore,
       'age': ?age,
       if (registrationNumber != null && registrationNumber.isNotEmpty)
         'registrationNumber': registrationNumber,
@@ -139,7 +137,6 @@ class UpdateAnimalNotifier extends AsyncNotifier<void> {
     required String zipCode,
     required String propertyName,
     String? description,
-    int? qualityScore,
     int? age,
     String? registrationNumber,
     bool available = true,
@@ -160,7 +157,6 @@ class UpdateAnimalNotifier extends AsyncNotifier<void> {
       },
       if (description != null && description.isNotEmpty)
         'description': description,
-      'qualityScore': ?qualityScore,
       'age': ?age,
       if (registrationNumber != null && registrationNumber.isNotEmpty)
         'registration_number': registrationNumber,

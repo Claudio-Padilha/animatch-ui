@@ -129,10 +129,6 @@ class _MyAnimalDetailScreenState extends ConsumerState<MyAnimalDetailScreen> {
                           title: 'STATUS',
                           children: [
                             _StatusRow(available: animal.available),
-                            _InfoRow(
-                              icon: Icons.star_rounded,
-                              text: 'Pontuação genética: ${animal.score}/100',
-                            ),
                           ],
                         ),
                         if (animal.geneticIndices != null &&
@@ -324,53 +320,8 @@ class _AnimalHeader extends StatelessWidget {
           style: GoogleFonts.inter(fontSize: 15, color: AppColors.muted),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            _ScoreBadge(score: animal.score),
-            const SizedBox(width: 8),
-            _AvailabilityBadge(available: animal.available),
-          ],
-        ),
+        _AvailabilityBadge(available: animal.available),
       ],
-    );
-  }
-}
-
-class _ScoreBadge extends StatelessWidget {
-  const _ScoreBadge({required this.score});
-
-  final int score;
-
-  Color get _color {
-    if (score >= 90) return const Color(0xFFD4A017);
-    if (score >= 75) return AppColors.primaryLight;
-    return AppColors.muted;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star_rounded, color: _color, size: 16),
-          const SizedBox(width: 5),
-          Text(
-            'Qualidade: $score/100',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _color,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

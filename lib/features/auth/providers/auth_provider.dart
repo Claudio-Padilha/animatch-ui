@@ -40,6 +40,11 @@ class AuthNotifier extends Notifier<Breeder?> {
     state = breeder;
   }
 
+  Future<void> restoreSession() async {
+    final breeder = await _repository.restoreSession();
+    if (breeder != null) state = breeder;
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     state = null;

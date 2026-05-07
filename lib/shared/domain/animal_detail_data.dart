@@ -1,4 +1,5 @@
 import '../../features/discover/domain/discover_animal.dart';
+import '../../features/herd/domain/herd_animal.dart';
 import '../../features/matches/domain/match_item.dart';
 
 class AnimalDetailData {
@@ -8,7 +9,6 @@ class AnimalDetailData {
     required this.species,
     required this.breed,
     required this.sex,
-    required this.score,
     required this.photoUrls,
     required this.locationCity,
     required this.locationState,
@@ -17,6 +17,7 @@ class AnimalDetailData {
     this.registrationCode,
     this.description,
     this.pendingMatchId,
+    this.geneticIndices,
   });
 
   final String id;
@@ -24,7 +25,6 @@ class AnimalDetailData {
   final String species;
   final String breed;
   final String sex; // empty when already combined into breed
-  final int score;
   final List<String> photoUrls;
   final String locationCity;
   final String locationState;
@@ -33,6 +33,7 @@ class AnimalDetailData {
   final String? registrationCode;
   final String? description;
   final String? pendingMatchId;
+  final GeneticIndices? geneticIndices;
 
   String get locationFull =>
       [locationCity, locationState].where((s) => s.isNotEmpty).join(', ');
@@ -47,7 +48,6 @@ class AnimalDetailData {
         species: a.species,
         breed: a.breed,
         sex: a.sex,
-        score: a.score,
         photoUrls: a.photoUrls,
         locationCity: a.locationCity,
         locationState: a.locationState,
@@ -56,6 +56,7 @@ class AnimalDetailData {
         registrationCode: a.registrationCode,
         description: a.description,
         pendingMatchId: a.pendingMatchId,
+        geneticIndices: a.geneticIndices,
       );
 
   factory AnimalDetailData.fromMatchAnimal(MatchAnimal a) => AnimalDetailData(
@@ -64,7 +65,6 @@ class AnimalDetailData {
         species: a.species,
         breed: a.breed, // already "Breed · Sex" combined
         sex: '',
-        score: a.score ?? 0,
         photoUrls: a.photoUrls,
         locationCity: _parseCity(a.location),
         locationState: _parseState(a.location),

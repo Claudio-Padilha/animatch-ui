@@ -5,12 +5,33 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Must be a top-level function — runs in a separate isolate when app is killed/backgrounded.
-// Stream sends data-only FCM messages (no notification field), so we must display
-// the notification manually here.
+// Only handles data-only FCM messages (Stream Chat). Messages that carry a notification
+// field are displayed automatically by the OS — returning early avoids a duplicate.
 @pragma('vm:entry-point')
 Future<void> _onBackgroundMessage(RemoteMessage message) async {
+  if (message.notification != null) return;
+
   final type = message.data['type'] as String?;
-  if (type != 'message.new') return;
+
+  final String title;
+  final String body;
+  final String? payload;
+
+  switch (type) {
+    case 'message.new':
+      title = 'Nova mensagem';
+      body = 'Você recebeu uma nova mensagem';
+      payload = message.data['cid'] as String?;
+    case 'match_confirmed':
+      final animalName = message.data['animalName'] as String?;
+      title = 'Match confirmado! 🎉';
+      body = animalName != null
+          ? '$animalName tem um novo match confirmado!'
+          : 'Você tem um novo match confirmado!';
+      payload = '/matches';
+    default:
+      return;
+  }
 
   final plugin = FlutterLocalNotificationsPlugin();
   await plugin
@@ -26,8 +47,8 @@ Future<void> _onBackgroundMessage(RemoteMessage message) async {
   );
   await plugin.show(
     message.hashCode,
-    'Nova mensagem',
-    'Você recebeu uma nova mensagem',
+    title,
+    body,
     const NotificationDetails(
       android: AndroidNotificationDetails(
         'animatch_default',
@@ -36,7 +57,7 @@ Future<void> _onBackgroundMessage(RemoteMessage message) async {
         priority: Priority.high,
       ),
     ),
-    payload: message.data['cid'] as String?,
+    payload: payload,
   );
 }
 
@@ -97,14 +118,26 @@ class NotificationService {
 
   void _showForeground(RemoteMessage message) {
     final type = message.data['type'] as String?;
+    final String? title;
+    final String? body;
+    final String? payload;
 
-    // Stream sends data-only messages — synthesise title/body from the type.
-    final title = message.notification?.title ??
-        (type == 'message.new' ? 'Nova mensagem' : null);
-    final body = message.notification?.body ??
-        (type == 'message.new' ? 'Você recebeu uma nova mensagem' : null);
-
-    if (title == null) return;
+    switch (type) {
+      case 'message.new':
+        title = message.notification?.title ?? 'Nova mensagem';
+        body = message.notification?.body ?? 'Você recebeu uma nova mensagem';
+        payload = message.data['cid'] as String?;
+      case 'match_confirmed':
+        final animalName = message.data['animalName'] as String?;
+        title = message.notification?.title ?? 'Match confirmado! 🎉';
+        body = message.notification?.body ??
+            (animalName != null
+                ? '$animalName tem um novo match confirmado!'
+                : 'Você tem um novo match confirmado!');
+        payload = '/matches';
+      default:
+        return;
+    }
 
     _local.show(
       message.hashCode,
@@ -118,7 +151,7 @@ class NotificationService {
           icon: '@mipmap/ic_launcher',
         ),
       ),
-      payload: message.data['cid'] as String? ?? message.data['route'] as String?,
+      payload: payload,
     );
   }
 }

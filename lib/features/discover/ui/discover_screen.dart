@@ -152,8 +152,16 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       cardBuilder: (context, index, _, _) => _AnimalSwipeCard(
         animal: animals[index],
-        onTap: () =>
-            context.push(AppRoutes.animalDetail, extra: AnimalDetailData.fromDiscoverAnimal(animals[index])),
+        onTap: () async {
+          final animalId = animals[index].id;
+          final acted = await context.push<bool>(
+            AppRoutes.animalDetail,
+            extra: AnimalDetailData.fromDiscoverAnimal(animals[index]),
+          );
+          if (acted == true && mounted) {
+            setState(() => _seenIds.add(animalId));
+          }
+        },
       ),
     );
   }
@@ -230,7 +238,6 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         breed: '${selected.breed} · ${selected.sex}',
         species: selected.species.apiValue,
         photoUrls: selected.imagePaths,
-        score: selected.score,
         registry: selected.registration,
         location: selected.location,
       ),
@@ -240,7 +247,6 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         breed: '${animal.breed} · ${animal.sex}',
         species: animal.species,
         photoUrls: animal.photoUrls,
-        score: animal.score,
         registry: animal.registrationCode,
         location: animal.locationFull.isNotEmpty ? animal.locationFull : null,
         description: animal.description,
@@ -357,8 +363,6 @@ class _AnimalSwipeCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _ScoreBadge(score: animal.score),
-                      const SizedBox(height: 10),
                       Text(
                         animal.name,
                         style: GoogleFonts.merriweather(
@@ -396,46 +400,6 @@ class _AnimalSwipeCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ─── Score badge ──────────────────────────────────────────────────────────────
-
-class _ScoreBadge extends StatelessWidget {
-  const _ScoreBadge({required this.score});
-
-  final int score;
-
-  Color get _color {
-    if (score >= 90) return const Color(0xFFD4A017);
-    if (score >= 75) return AppColors.primaryLight;
-    return AppColors.muted;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: _color,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.star_rounded, color: Colors.white, size: 14),
-          const SizedBox(width: 4),
-          Text(
-            '$score/100',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ],
       ),
     );
   }

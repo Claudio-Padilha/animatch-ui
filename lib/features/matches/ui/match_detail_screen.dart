@@ -232,7 +232,6 @@ class _AnimalCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
-              if (animal.score != null) _ScorePill(score: animal.score!),
             ],
           ),
           const SizedBox(height: 2),
@@ -260,36 +259,6 @@ class _AnimalCard extends StatelessWidget {
             _DepRow(label: 'DEP Conformação', value: animal.depConf),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _ScorePill extends StatelessWidget {
-  const _ScorePill({required this.score});
-
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color bg;
-    final Color fg;
-    if (score >= 90) {
-      bg = const Color(0xFFFEF3C7);
-      fg = const Color(0xFFD4A017);
-    } else if (score >= 75) {
-      bg = const Color(0xFFDCFCE7);
-      fg = AppColors.primary;
-    } else {
-      bg = const Color(0xFFF3F4F6);
-      fg = AppColors.muted;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        '⭐ $score',
-        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
       ),
     );
   }

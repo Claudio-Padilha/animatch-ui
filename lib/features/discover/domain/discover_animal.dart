@@ -1,4 +1,5 @@
 import '../../herd/domain/animal_enums.dart';
+import '../../herd/domain/herd_animal.dart';
 
 class DiscoverAnimal {
   const DiscoverAnimal({
@@ -7,7 +8,6 @@ class DiscoverAnimal {
     required this.species,
     required this.breed,
     required this.sex,
-    required this.score,
     required this.photoUrls,
     required this.locationCity,
     required this.locationState,
@@ -16,6 +16,7 @@ class DiscoverAnimal {
     this.registrationCode,
     this.description,
     this.pendingMatchId,
+    this.geneticIndices,
   });
 
   final String id;
@@ -23,7 +24,6 @@ class DiscoverAnimal {
   final String species;
   final String breed;
   final String sex;
-  final int score;
   final List<String> photoUrls;
   final String locationCity;
   final String locationState;
@@ -32,6 +32,7 @@ class DiscoverAnimal {
   final String? registrationCode;
   final String? description;
   final String? pendingMatchId;
+  final GeneticIndices? geneticIndices;
 
   String get locationFull => '$locationCity, $locationState';
   String get ageLabel => age != null ? '$age ${age == 1 ? 'ano' : 'anos'}' : '';
@@ -61,7 +62,6 @@ class DiscoverAnimal {
       species: json['species'] as String? ?? '',
       breed: breedLabel,
       sex: sex,
-      score: (json['qualityScore'] as num?)?.toInt() ?? 0,
       photoUrls: photoUrls,
       locationCity: address?['city'] as String? ?? '',
       locationState: address?['state'] as String? ?? '',
@@ -70,6 +70,10 @@ class DiscoverAnimal {
       registrationCode: json['registrationNumber'] as String?,
       description: json['description'] as String?,
       pendingMatchId: json['pendingMatchId'] as String?,
+      geneticIndices: json['geneticIndices'] is Map
+          ? GeneticIndices.fromJson(
+              json['geneticIndices'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

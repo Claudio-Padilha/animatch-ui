@@ -76,6 +76,23 @@ class AuthRepository {
         : breeder.copyWith(city: city, state: state);
   }
 
+  // Restores a previous session silently using stored Auth0 credentials.
+  // Returns null if no valid credentials exist (user needs to log in).
+  Future<Breeder?> restoreSession() async {
+    try {
+      final hasCredentials =
+          await _auth0.credentialsManager.hasValidCredentials();
+      if (!hasCredentials) return null;
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/sync-breeder',
+        data: <String, dynamic>{},
+      );
+      return Breeder.fromJson(response.data!);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     await _auth0.webAuthentication(scheme: Auth0Config.scheme).logout();
   }

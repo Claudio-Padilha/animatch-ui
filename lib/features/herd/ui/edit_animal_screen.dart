@@ -28,7 +28,6 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
   // Basic info
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
-  late final TextEditingController _qualityScoreController;
   late final TextEditingController _ageController;
   late final TextEditingController _registrationController;
 
@@ -67,8 +66,6 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
 
     _nameController = TextEditingController(text: a.name);
     _descriptionController = TextEditingController(text: a.description ?? '');
-    _qualityScoreController = TextEditingController(
-        text: a.score > 0 ? '${a.score}' : '');
     _ageController =
         TextEditingController(text: a.age != null ? '${a.age}' : '');
     _registrationController =
@@ -105,7 +102,6 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _qualityScoreController.dispose();
     _ageController.dispose();
     _registrationController.dispose();
     _propertyNameController.dispose();
@@ -234,7 +230,6 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedBreed == null || _selectedSexLabel == null) return;
 
-    final qualityScore = int.tryParse(_qualityScoreController.text.trim());
     final age = int.tryParse(_ageController.text.trim());
 
     await ref.read(updateAnimalProvider.notifier).updateAnimal(
@@ -248,7 +243,6 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
           state: _stateController.text.trim(),
           zipCode: _zipCodeController.text.trim(),
           description: _descriptionController.text.trim(),
-          qualityScore: qualityScore,
           age: age,
           registrationNumber: _registrationController.text.trim(),
           available: _available,
@@ -442,25 +436,6 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
               ),
               const SizedBox(height: 16),
 
-              // ── Pontuação de qualidade ───────────────────────────────
-              _SectionLabel('Pontuação de qualidade (0–100)'),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _qualityScoreController,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(hintText: 'Ex: 87'),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  final n = int.tryParse(v);
-                  if (n == null || n < 0 || n > 100) {
-                    return 'Digite um valor entre 0 e 100';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
               // ── Descrição ────────────────────────────────────────────
               _SectionLabel('Descrição'),
               const SizedBox(height: 6),
@@ -513,6 +488,7 @@ class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
                     _milkRestrictionWeightController,
                 weight18mController: _weight18mController,
                 fertilityIndexController: _fertilityIndexController,
+                showFertilityIndex: _selectedSexLabel == 'Fêmea',
               ),
               const SizedBox(height: 28),
 
@@ -617,6 +593,7 @@ class _DepSection extends StatelessWidget {
     required this.milkRestrictionWeightController,
     required this.weight18mController,
     required this.fertilityIndexController,
+    required this.showFertilityIndex,
   });
 
   final bool expanded;
@@ -625,6 +602,7 @@ class _DepSection extends StatelessWidget {
   final TextEditingController milkRestrictionWeightController;
   final TextEditingController weight18mController;
   final TextEditingController fertilityIndexController;
+  final bool showFertilityIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -691,12 +669,14 @@ class _DepSection extends StatelessWidget {
                     hint: 'kg',
                     controller: weight18mController,
                   ),
-                  const SizedBox(height: 12),
-                  _DepField(
-                    label: 'Índice de Fertilidade',
-                    hint: '%',
-                    controller: fertilityIndexController,
-                  ),
+                  if (showFertilityIndex) ...[
+                    const SizedBox(height: 12),
+                    _DepField(
+                      label: 'Índice de Fertilidade',
+                      hint: '%',
+                      controller: fertilityIndexController,
+                    ),
+                  ],
                 ],
               ),
             ),

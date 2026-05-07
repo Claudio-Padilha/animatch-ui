@@ -83,10 +83,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     )
                   : const Text('Entrar'),
             ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: _isLoading ? null : () => context.go(AppRoutes.register),
-              child: const Text('Criar conta gratuita'),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Não tem uma conta? ',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                ),
+                GestureDetector(
+                  onTap: _isLoading ? null : () => context.go(AppRoutes.register),
+                  child: Text(
+                    'Criar conta',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const Spacer(),
           ],

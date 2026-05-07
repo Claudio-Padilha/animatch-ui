@@ -10,7 +10,6 @@ class MatchAnimal {
     this.species = 'cattle',
     this.photoUrls = const [],
     this.age,
-    this.score,
     this.registry,
     this.depPeso,
     this.depConf,
@@ -25,7 +24,6 @@ class MatchAnimal {
   final String species;
   final List<String> photoUrls;
   final int? age;
-  final int? score;
   final String? registry;
   final double? depPeso;
   final double? depConf;
@@ -64,7 +62,6 @@ class MatchAnimal {
       species: json['species'] as String? ?? 'cattle',
       photoUrls: photoUrls,
       age: (json['age'] as num?)?.toInt(),
-      score: (json['qualityScore'] as num?)?.toInt(),
       registry: json['registrationNumber'] as String?,
       location: location.isNotEmpty ? location : null,
       locationDirections: address?['directions'] as String?,

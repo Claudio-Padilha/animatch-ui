@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../features/herd/domain/herd_animal.dart';
 import '../domain/animal_detail_data.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/circle_action_button.dart';
@@ -83,6 +84,12 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                             ),
                           ],
                         ),
+                      ],
+                      if (animal.geneticIndices != null &&
+                          !animal.geneticIndices!.isEmpty) ...[
+                        const SizedBox(height: 16),
+                        _GeneticIndicesSection(
+                            indices: animal.geneticIndices!),
                       ],
                     ],
                   ),
@@ -254,48 +261,7 @@ class _AnimalHeader extends StatelessWidget {
           parts.join(' · '),
           style: GoogleFonts.inter(fontSize: 15, color: AppColors.muted),
         ),
-        const SizedBox(height: 10),
-        _ScoreBadge(score: animal.score),
       ],
-    );
-  }
-}
-
-class _ScoreBadge extends StatelessWidget {
-  const _ScoreBadge({required this.score});
-
-  final int score;
-
-  Color get _color {
-    if (score >= 90) return const Color(0xFFD4A017);
-    if (score >= 75) return AppColors.primaryLight;
-    return AppColors.muted;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star_rounded, color: _color, size: 16),
-          const SizedBox(width: 5),
-          Text(
-            'Qualidade: $score/100',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _color,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -395,6 +361,43 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
+// ─── Genetic indices section ──────────────────────────────────────────────────
+
+class _GeneticIndicesSection extends StatelessWidget {
+  const _GeneticIndicesSection({required this.indices});
+
+  final GeneticIndices indices;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoSection(
+      title: 'DEP / ÍNDICES GENÉTICOS',
+      children: [
+        if (indices.birthWeight != null)
+          _InfoRow(
+            icon: Icons.monitor_weight_outlined,
+            text: 'DEP Peso ao Nascer: ${indices.birthWeight} kg',
+          ),
+        if (indices.milkRestrictionWeight != null)
+          _InfoRow(
+            icon: Icons.monitor_weight_outlined,
+            text: 'DEP Peso ao Desmame: ${indices.milkRestrictionWeight} kg',
+          ),
+        if (indices.weight18m != null)
+          _InfoRow(
+            icon: Icons.monitor_weight_outlined,
+            text: 'DEP Peso 18 meses: ${indices.weight18m} kg',
+          ),
+        if (indices.fertilityIndex != null)
+          _InfoRow(
+            icon: Icons.favorite_border_outlined,
+            text: 'Índice de Fertilidade: ${indices.fertilityIndex}%',
+          ),
+      ],
+    );
+  }
+}
+
 // ─── Back button ──────────────────────────────────────────────────────────────
 
 class _BackButton extends StatelessWidget {
@@ -440,7 +443,7 @@ class _FloatingCta extends StatelessWidget {
                 duration: const Duration(seconds: 2),
               ),
             );
-            context.pop();
+            context.pop(true);
           },
           icon: Icons.close_rounded,
           iconColor: AppColors.error,
@@ -485,7 +488,7 @@ class _FloatingCta extends StatelessWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.pop();
+              context.pop(true);
             },
             child: const Text('Ok'),
           ),

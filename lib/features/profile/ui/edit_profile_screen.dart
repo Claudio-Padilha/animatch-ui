@@ -13,6 +13,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/domain/breeder_association.dart';
 import '../../../shared/widgets/address_form_fields.dart';
 import '../../../shared/widgets/associations_picker.dart';
+import '../../../shared/widgets/coming_soon_sheet.dart';
 import '../domain/breeder_profile.dart';
 import '../providers/profile_provider.dart';
 
@@ -456,7 +457,8 @@ class _PlanCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () {},
+              onPressed: () =>
+                  showComingSoonSheet(context, feature: 'Gerenciar plano'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(44),
               ),

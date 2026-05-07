@@ -35,7 +35,6 @@ class HerdAnimal {
     required this.breed,
     required this.sex,
     required this.species,
-    required this.score,
     required this.available,
     this.imagePaths = const [],
     this.registration,
@@ -55,7 +54,6 @@ class HerdAnimal {
   /// Portuguese display label ("Macho" / "Fêmea").
   final String sex;
   final AnimalSpecies species;
-  final int score;
   final bool available;
   final List<String> imagePaths;
   final String? registration;
@@ -82,7 +80,6 @@ class HerdAnimal {
       breed: breedLabel,
       sex: sex == AnimalSex.male ? 'Macho' : 'Fêmea',
       species: species,
-      score: (json['qualityScore'] as num?)?.toInt() ?? 0,
       available: (json['status'] as String?) == 'active',
       imagePaths: (json['photoUrls'] as List<dynamic>? ?? [])
           .map((e) => e as String)
@@ -116,7 +113,6 @@ class HerdAnimal {
     String? breed,
     String? sex,
     AnimalSpecies? species,
-    int? score,
     bool? available,
     List<String>? imagePaths,
     String? registration,
@@ -135,7 +131,6 @@ class HerdAnimal {
       breed: breed ?? this.breed,
       sex: sex ?? this.sex,
       species: species ?? this.species,
-      score: score ?? this.score,
       available: available ?? this.available,
       imagePaths: imagePaths ?? this.imagePaths,
       registration: registration ?? this.registration,

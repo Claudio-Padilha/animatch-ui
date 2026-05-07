@@ -334,17 +334,6 @@ class _AnimalCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.star_rounded,
-                          size: 14, color: AppColors.secondary),
-                      const SizedBox(width: 3),
-                      Text(
-                        '${animal.score}',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: AppColors.secondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
                       _AvailabilityChip(available: animal.available),
                     ],
                   ),

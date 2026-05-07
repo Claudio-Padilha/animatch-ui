@@ -21,7 +21,14 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) ref.read(notificationServiceProvider).init();
+    if (!kIsWeb) {
+      ref.read(notificationServiceProvider).init();
+      _tryRestoreSession();
+    }
+  }
+
+  Future<void> _tryRestoreSession() async {
+    await ref.read(authNotifierProvider.notifier).restoreSession();
   }
 
   @override
@@ -59,12 +66,15 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
 
       final token = await notificationService.getToken();
       // ignore: avoid_print
-      print('[FCM] device token: $token');
+      print('[FCM] device token: ${token ?? "NULL — FCM token unavailable"}');
 
       if (token != null) {
         await deviceTokenService.register(token, breederId: breeder.id);
         // ignore: avoid_print
-        print('[FCM] token registered with backend.');
+        print('[FCM] token registered with backend for breederId=${breeder.id}');
+      } else {
+        // ignore: avoid_print
+        print('[FCM] skipping registration — getToken() returned null');
       }
 
       notificationService.onTokenRefresh.listen((newToken) {
