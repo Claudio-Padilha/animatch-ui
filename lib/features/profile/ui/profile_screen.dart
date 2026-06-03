@@ -300,17 +300,30 @@ class _VerificationCta extends StatelessWidget {
 
 // ─── Sign out button ──────────────────────────────────────────────────────────
 
-class _SignOutButton extends StatelessWidget {
+class _SignOutButton extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_SignOutButton> createState() => _SignOutButtonState();
+}
+
+class _SignOutButtonState extends ConsumerState<_SignOutButton> {
+  bool _isLoading = false;
+
   @override
   Widget build(BuildContext context) {
     return OutlinedButton(
-      onPressed: () => _confirmSignOut(context),
+      onPressed: _isLoading ? null : () => _confirmSignOut(context),
       style: OutlinedButton.styleFrom(
         foregroundColor: AppColors.error,
         side: const BorderSide(color: AppColors.error),
         minimumSize: const Size.fromHeight(52),
       ),
-      child: const Text('Sair da conta'),
+      child: _isLoading
+          ? const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
+            )
+          : const Text('Sair da conta'),
     );
   }
 
@@ -326,9 +339,11 @@ class _SignOutButton extends StatelessWidget {
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              context.go(AppRoutes.login);
+              setState(() => _isLoading = true);
+              await ref.read(authNotifierProvider.notifier).logout();
+              if (mounted) setState(() => _isLoading = false);
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Sair'),

@@ -6,18 +6,21 @@ class GeneticIndices {
     this.milkRestrictionWeight,
     this.weight18m,
     this.fertilityIndex,
+    this.conformacao,
   });
 
   final double? birthWeight;
   final double? milkRestrictionWeight;
   final double? weight18m;
   final double? fertilityIndex;
+  final double? conformacao;
 
   bool get isEmpty =>
       birthWeight == null &&
       milkRestrictionWeight == null &&
       weight18m == null &&
-      fertilityIndex == null;
+      fertilityIndex == null &&
+      conformacao == null;
 
   factory GeneticIndices.fromJson(Map<String, dynamic> json) => GeneticIndices(
         birthWeight: (json['birth_weight'] as num?)?.toDouble(),
@@ -25,6 +28,7 @@ class GeneticIndices {
             (json['milk_restriction_weight'] as num?)?.toDouble(),
         weight18m: (json['weight_18m'] as num?)?.toDouble(),
         fertilityIndex: (json['fertility_index'] as num?)?.toDouble(),
+        conformacao: (json['conformacao'] as num?)?.toDouble(),
       );
 }
 

@@ -20,6 +20,7 @@ import '../../features/matches/ui/chat_screen.dart';
 import '../../features/matches/ui/match_detail_screen.dart';
 import '../../features/matches/ui/matches_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/splash/splash_screen.dart';
 import '../../features/profile/ui/edit_profile_screen.dart';
 import '../../features/profile/ui/profile_completion_screen.dart';
 import '../../features/profile/ui/profile_screen.dart';
@@ -28,6 +29,7 @@ import '../../shared/widgets/app_shell.dart';
 import 'router_notifier.dart';
 
 abstract final class AppRoutes {
+  static const splash = '/splash';
   static const onboarding = '/onboarding';
   static const login = '/login';
   static const register = '/register';
@@ -59,8 +61,12 @@ final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     refreshListenable: notifier,
     redirect: notifier.redirect,
-    initialLocation: AppRoutes.onboarding,
+    initialLocation: AppRoutes.splash,
     routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (_, _) => const SplashScreen(),
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (_, state) => OnboardingScreen(

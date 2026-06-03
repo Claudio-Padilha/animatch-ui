@@ -19,7 +19,6 @@ class AuthRepository {
         .login(
           audience: Auth0Config.audience,
           scopes: {'openid', 'profile', 'email', 'offline_access'},
-          parameters: {'prompt': 'login'},
         );
     try {
       // Returning user — fetch existing profile (empty body, sub comes from JWT).

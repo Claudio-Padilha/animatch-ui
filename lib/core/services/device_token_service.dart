@@ -28,7 +28,7 @@ class DeviceTokenService {
   }
 
   Future<void> unregister(String fcmToken, {required String breederId}) async {
-    await _dio.delete<void>('/breeders/device-token/$fcmToken');
+    await _dio.delete<void>('/breeders/device-token/${Uri.encodeComponent(fcmToken)}');
     // Stream tokens are not removed on logout — FCM notifies Stream automatically
     // when a token becomes invalid (uninstall, token rotation), which Stream uses
     // to clean up stale devices. Removing here would break notifications for

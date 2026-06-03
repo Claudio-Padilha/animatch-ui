@@ -53,3 +53,14 @@ class AuthNotifier extends Notifier<Breeder?> {
 
 final authNotifierProvider =
     NotifierProvider<AuthNotifier, Breeder?>(AuthNotifier.new);
+
+class _AuthInitializedNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void setInitialized() => state = true;
+}
+
+// Becomes true once restoreSession() has completed (or is skipped on web).
+// The router waits on this before deciding where to navigate.
+final authInitializedProvider =
+    NotifierProvider<_AuthInitializedNotifier, bool>(_AuthInitializedNotifier.new);

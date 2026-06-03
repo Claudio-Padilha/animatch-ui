@@ -8,34 +8,45 @@ import 'app_router.dart';
 class RouterNotifier extends ChangeNotifier {
   RouterNotifier(this._ref) {
     _ref.listen<dynamic>(authNotifierProvider, (prev, next) => notifyListeners());
+    _ref.listen<bool>(authInitializedProvider, (prev, next) => notifyListeners());
   }
 
   final Ref _ref;
 
   String? redirect(BuildContext context, GoRouterState state) {
+    final initialized = _ref.read(authInitializedProvider);
+    final loc = state.matchedLocation;
+
+    // Wait on splash until session check completes.
+    if (!initialized) return loc == AppRoutes.splash ? null : AppRoutes.splash;
+
     final breeder = _ref.read(authNotifierProvider);
     final isLoggedIn = breeder != null;
-    final loc = state.matchedLocation;
 
     final isPublic = loc == AppRoutes.onboarding ||
         loc == AppRoutes.login ||
         loc == AppRoutes.register;
 
-    if (!isLoggedIn && !isPublic) return AppRoutes.onboarding;
+    if (!isLoggedIn) {
+      if (loc == AppRoutes.splash || !isPublic) return AppRoutes.onboarding;
+      return null;
+    }
 
-    if (isLoggedIn) {
-      final needsCompletion =
-          breeder.city == null || breeder.city!.trim().isEmpty;
-      if (needsCompletion && loc != AppRoutes.profileCompletion) {
-        return AppRoutes.profileCompletion;
-      }
-      if (!needsCompletion &&
-          (isPublic || loc == AppRoutes.profileCompletion)) {
-        return AppRoutes.discover;
-      }
-      if (loc == AppRoutes.editProfile && !breeder.verifiedBreeder) {
-        return AppRoutes.profile;
-      }
+    // Logged in
+    final needsCompletion = breeder.city == null || breeder.city!.trim().isEmpty;
+
+    if (loc == AppRoutes.splash) {
+      return needsCompletion ? AppRoutes.profileCompletion : AppRoutes.herd;
+    }
+    if (needsCompletion && loc != AppRoutes.profileCompletion) {
+      return AppRoutes.profileCompletion;
+    }
+    if (!needsCompletion &&
+        (isPublic || loc == AppRoutes.profileCompletion)) {
+      return AppRoutes.herd;
+    }
+    if (loc == AppRoutes.editProfile && !breeder.verifiedBreeder) {
+      return AppRoutes.profile;
     }
 
     return null;

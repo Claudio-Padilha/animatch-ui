@@ -24,18 +24,21 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
     if (!kIsWeb) {
       ref.read(notificationServiceProvider).init();
       _tryRestoreSession();
+    } else {
+      ref.read(authInitializedProvider.notifier).setInitialized();
     }
   }
 
   Future<void> _tryRestoreSession() async {
     await ref.read(authNotifierProvider.notifier).restoreSession();
+    ref.read(authInitializedProvider.notifier).setInitialized();
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen<Breeder?>(authNotifierProvider, (prev, next) {
       if (next != null && prev == null) _onLogin();
-      if (next == null && prev != null) _onLogout();
+      if (next == null && prev != null) _onLogout(prev);
     });
 
     return MaterialApp.router(
@@ -88,12 +91,11 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
     }
   }
 
-  Future<void> _onLogout() async {
+  Future<void> _onLogout(Breeder breeder) async {
     if (kIsWeb) return;
     try {
-      final breeder = ref.read(authNotifierProvider);
       final token = await ref.read(notificationServiceProvider).getToken();
-      if (token != null && breeder != null) {
+      if (token != null) {
         await ref.read(deviceTokenServiceProvider).unregister(token, breederId: breeder.id);
         // ignore: avoid_print
         print('[FCM] token unregistered on logout.');

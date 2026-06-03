@@ -1,4 +1,5 @@
 import '../../herd/domain/animal_enums.dart';
+import '../../herd/domain/herd_animal.dart';
 
 enum MatchStatus { confirmado, pendente }
 
@@ -11,11 +12,10 @@ class MatchAnimal {
     this.photoUrls = const [],
     this.age,
     this.registry,
-    this.depPeso,
-    this.depConf,
     this.location,
     this.locationDirections,
     this.description,
+    this.geneticIndices,
   });
 
   final String? id;
@@ -25,13 +25,15 @@ class MatchAnimal {
   final List<String> photoUrls;
   final int? age;
   final String? registry;
-  final double? depPeso;
-  final double? depConf;
   final String? location;
   final String? locationDirections;
   final String? description;
+  final GeneticIndices? geneticIndices;
 
   String get imagePath => photoUrls.isNotEmpty ? photoUrls.first : '';
+
+  double? get depPeso => geneticIndices?.milkRestrictionWeight;
+  double? get depConf => geneticIndices?.conformacao;
 
   factory MatchAnimal.fromJson(Map<String, dynamic> json) {
     final breedApiValue = json['breed'] as String? ?? '';
@@ -66,6 +68,10 @@ class MatchAnimal {
       location: location.isNotEmpty ? location : null,
       locationDirections: address?['directions'] as String?,
       description: json['description'] as String?,
+      geneticIndices: json['geneticIndices'] is Map
+          ? GeneticIndices.fromJson(
+              json['geneticIndices'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

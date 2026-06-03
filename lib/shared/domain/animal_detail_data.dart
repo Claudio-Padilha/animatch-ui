@@ -72,6 +72,7 @@ class AnimalDetailData {
         age: a.age,
         registrationCode: a.registry,
         description: a.description,
+        geneticIndices: a.geneticIndices,
       );
 
   // location is stored as "City, State" in MatchAnimal

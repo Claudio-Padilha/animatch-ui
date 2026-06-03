@@ -343,7 +343,6 @@ class _AddAnimalScreenState extends ConsumerState<AddAnimalScreen> {
                 cityController: _cityController,
                 stateController: _stateController,
                 zipController: _zipCodeController,
-                required: true,
               ),
               const SizedBox(height: 16),
 
