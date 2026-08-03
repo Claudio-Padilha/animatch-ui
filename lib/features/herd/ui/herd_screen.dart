@@ -79,8 +79,7 @@ class HerdScreen extends ConsumerWidget {
                           animal: animal,
                           isSelected: selected == animal,
                           onTap: () => context.push(
-                            AppRoutes.myAnimalDetail,
-                            extra: animal.id,
+                            AppRoutes.myAnimalDetailPath(animal.id),
                           ),
                           onSelect: () {
                             ref

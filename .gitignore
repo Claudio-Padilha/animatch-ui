@@ -51,6 +51,7 @@
 # ── Secrets & environment ──────────────────────────────────────────────────
 .env
 .env.*
+config/*.env.json
 *.jks
 *.keystore
 google-services.json

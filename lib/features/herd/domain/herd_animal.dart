@@ -1,19 +1,21 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import 'animal_enums.dart';
 
-class GeneticIndices {
-  const GeneticIndices({
-    this.birthWeight,
-    this.milkRestrictionWeight,
-    this.weight18m,
-    this.fertilityIndex,
-    this.conformacao,
-  });
+part 'herd_animal.freezed.dart';
+part 'herd_animal.g.dart';
 
-  final double? birthWeight;
-  final double? milkRestrictionWeight;
-  final double? weight18m;
-  final double? fertilityIndex;
-  final double? conformacao;
+@freezed
+abstract class GeneticIndices with _$GeneticIndices {
+  const GeneticIndices._();
+
+  const factory GeneticIndices({
+    @JsonKey(name: 'birth_weight') double? birthWeight,
+    @JsonKey(name: 'milk_restriction_weight') double? milkRestrictionWeight,
+    @JsonKey(name: 'weight_18m') double? weight18m,
+    @JsonKey(name: 'fertility_index') double? fertilityIndex,
+    double? conformacao,
+  }) = _GeneticIndices;
 
   bool get isEmpty =>
       birthWeight == null &&
@@ -22,56 +24,42 @@ class GeneticIndices {
       fertilityIndex == null &&
       conformacao == null;
 
-  factory GeneticIndices.fromJson(Map<String, dynamic> json) => GeneticIndices(
-        birthWeight: (json['birth_weight'] as num?)?.toDouble(),
-        milkRestrictionWeight:
-            (json['milk_restriction_weight'] as num?)?.toDouble(),
-        weight18m: (json['weight_18m'] as num?)?.toDouble(),
-        fertilityIndex: (json['fertility_index'] as num?)?.toDouble(),
-        conformacao: (json['conformacao'] as num?)?.toDouble(),
-      );
+  factory GeneticIndices.fromJson(Map<String, dynamic> json) =>
+      _$GeneticIndicesFromJson(json);
 }
 
-class HerdAnimal {
-  const HerdAnimal({
-    required this.id,
-    required this.name,
-    required this.breed,
-    required this.sex,
-    required this.species,
-    required this.available,
-    this.imagePaths = const [],
-    this.registration,
-    this.location,
-    this.city,
-    this.state,
-    this.zipCode,
-    this.propertyName,
-    this.age,
-    this.description,
-    this.geneticIndices,
-  });
+@freezed
+abstract class HerdAnimal with _$HerdAnimal {
+  const HerdAnimal._();
 
-  final String id;
-  final String name;
-  final String breed;
-  /// Portuguese display label ("Macho" / "Fêmea").
-  final String sex;
-  final AnimalSpecies species;
-  final bool available;
-  final List<String> imagePaths;
-  final String? registration;
-  /// Formatted "City, ST" — for display only.
-  final String? location;
-  final String? city;
-  final String? state;
-  final String? zipCode;
-  final String? propertyName;
-  final int? age;
-  final String? description;
-  final GeneticIndices? geneticIndices;
+  const factory HerdAnimal({
+    required String id,
+    required String name,
+    required String breed,
+    /// Portuguese display label ("Macho" / "Fêmea").
+    required String sex,
+    required AnimalSpecies species,
+    required bool available,
+    @Default(<String>[]) List<String> imagePaths,
+    String? registration,
+    /// Formatted "City, ST" — for display only.
+    String? location,
+    String? city,
+    String? state,
+    String? zipCode,
+    String? propertyName,
+    int? age,
+    String? description,
+    GeneticIndices? geneticIndices,
+  }) = _HerdAnimal;
 
-  factory HerdAnimal.fromJson(Map<String, dynamic> json) {
+  /// Hand-written — not a freezed/json_serializable `factory fromJson`,
+  /// since this does derived-field transforms (breed/sex labels, status
+  /// to bool, address flattening) that don't fit the generated
+  /// field-for-field mapping. Naming it `fromJson` still works as a call
+  /// site (`HerdAnimal.fromJson(json)`) because it's a static method, not
+  /// a factory constructor — freezed only special-cases the latter.
+  static HerdAnimal fromJson(Map<String, dynamic> json) {
     final species = AnimalSpecies.fromApiValue(json['species'] as String);
     final sex = AnimalSex.fromApiValue(json['sex'] as String? ?? 'male');
     final address = json['address'] as Map<String, dynamic>?;
@@ -109,43 +97,5 @@ class HerdAnimal {
     } catch (_) {
       return apiValue;
     }
-  }
-
-  HerdAnimal copyWith({
-    String? id,
-    String? name,
-    String? breed,
-    String? sex,
-    AnimalSpecies? species,
-    bool? available,
-    List<String>? imagePaths,
-    String? registration,
-    String? location,
-    String? city,
-    String? state,
-    String? zipCode,
-    String? propertyName,
-    int? age,
-    String? description,
-    GeneticIndices? geneticIndices,
-  }) {
-    return HerdAnimal(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      breed: breed ?? this.breed,
-      sex: sex ?? this.sex,
-      species: species ?? this.species,
-      available: available ?? this.available,
-      imagePaths: imagePaths ?? this.imagePaths,
-      registration: registration ?? this.registration,
-      location: location ?? this.location,
-      city: city ?? this.city,
-      state: state ?? this.state,
-      zipCode: zipCode ?? this.zipCode,
-      propertyName: propertyName ?? this.propertyName,
-      age: age ?? this.age,
-      description: description ?? this.description,
-      geneticIndices: geneticIndices ?? this.geneticIndices,
-    );
   }
 }

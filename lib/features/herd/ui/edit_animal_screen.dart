@@ -13,16 +13,50 @@ import '../domain/herd_animal.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../providers/herd_provider.dart';
 
-class EditAnimalScreen extends ConsumerStatefulWidget {
-  const EditAnimalScreen({super.key, required this.animal});
+class EditAnimalScreen extends ConsumerWidget {
+  const EditAnimalScreen({super.key, required this.animalId});
+
+  final String animalId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final animalAsync = ref.watch(animalDetailProvider(animalId));
+    return animalAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              const Text('Erro ao carregar animal'),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: () => ref.invalidate(animalDetailProvider(animalId)),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (animal) => _EditAnimalForm(animal: animal),
+    );
+  }
+}
+
+class _EditAnimalForm extends ConsumerStatefulWidget {
+  const _EditAnimalForm({required this.animal});
 
   final HerdAnimal animal;
 
   @override
-  ConsumerState<EditAnimalScreen> createState() => _EditAnimalScreenState();
+  ConsumerState<_EditAnimalForm> createState() => _EditAnimalScreenState();
 }
 
-class _EditAnimalScreenState extends ConsumerState<EditAnimalScreen> {
+class _EditAnimalScreenState extends ConsumerState<_EditAnimalForm> {
   final _formKey = GlobalKey<FormState>();
 
   // Basic info

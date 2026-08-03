@@ -155,7 +155,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         onTap: () async {
           final animalId = animals[index].id;
           final acted = await context.push<bool>(
-            AppRoutes.animalDetail,
+            AppRoutes.animalDetailPath(animalId),
             extra: AnimalDetailData.fromDiscoverAnimal(animals[index]),
           );
           if (acted == true && mounted) {

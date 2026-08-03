@@ -10,7 +10,6 @@ import '../../features/auth/ui/register_screen.dart';
 import '../../shared/domain/animal_detail_data.dart';
 import '../../shared/screens/animal_detail_screen.dart';
 import '../../features/discover/ui/discover_screen.dart';
-import '../../features/herd/domain/herd_animal.dart';
 import '../../features/herd/ui/add_animal_screen.dart';
 import '../../features/herd/ui/edit_animal_screen.dart';
 import '../../features/herd/ui/herd_screen.dart';
@@ -34,15 +33,23 @@ abstract final class AppRoutes {
   static const login = '/login';
   static const register = '/register';
   static const discover = '/';
-  static const animalDetail = '/animal';
-  static const matchAnimalDetail = '/matches/animal';
+  static const animalDetail = '/animal/:animalId';
+  static String animalDetailPath(String animalId) =>
+      '/animal/${Uri.encodeComponent(animalId)}';
+  static const matchAnimalDetail = '/matches/animal/:animalId';
+  static String matchAnimalDetailPath(String animalId) =>
+      '/matches/animal/${Uri.encodeComponent(animalId)}';
   static const matches = '/matches';
   static const matchDetail = '/matches/detail';
   static const chat = '/matches/chat';
   static const herd = '/rebanho';
   static const addAnimal = '/rebanho/novo';
-  static const myAnimalDetail = '/rebanho/animal';
-  static const editAnimal = '/rebanho/animal/editar';
+  static const myAnimalDetail = '/rebanho/animal/:animalId';
+  static String myAnimalDetailPath(String animalId) =>
+      '/rebanho/animal/${Uri.encodeComponent(animalId)}';
+  static const editAnimal = '/rebanho/animal/editar/:animalId';
+  static String editAnimalPath(String animalId) =>
+      '/rebanho/animal/editar/${Uri.encodeComponent(animalId)}';
   static const profileCompletion = '/completar-perfil';
   static const profile = '/perfil';
   static const editProfile = '/perfil/editar';
@@ -86,15 +93,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const AddAnimalScreen(),
       ),
       GoRoute(
-        path: AppRoutes.myAnimalDetail,
-        builder: (_, state) => MyAnimalDetailScreen(
-          animalId: state.extra! as String,
+        path: AppRoutes.editAnimal,
+        builder: (_, state) => EditAnimalScreen(
+          animalId: state.pathParameters['animalId']!,
         ),
       ),
       GoRoute(
-        path: AppRoutes.editAnimal,
-        builder: (_, state) => EditAnimalScreen(
-          animal: state.extra! as HerdAnimal,
+        path: AppRoutes.myAnimalDetail,
+        builder: (_, state) => MyAnimalDetailScreen(
+          animalId: state.pathParameters['animalId']!,
         ),
       ),
       GoRoute(
@@ -111,25 +118,36 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.animalDetail,
-        builder: (_, state) => AnimalDetailScreen(
-          animal: state.extra! as AnimalDetailData,
+        builder: (_, state) => AnimalDetailLoader(
+          animalId: state.pathParameters['animalId']!,
+          animal: state.extra as AnimalDetailData?,
         ),
       ),
       GoRoute(
         path: AppRoutes.matchAnimalDetail,
-        builder: (_, state) => AnimalDetailScreen(
-          animal: state.extra! as AnimalDetailData,
+        builder: (_, state) => AnimalDetailLoader(
+          animalId: state.pathParameters['animalId']!,
+          animal: state.extra as AnimalDetailData?,
           showCtas: false,
         ),
       ),
+      // No backend endpoint exists to fetch a single match by id (only
+      // GET /matches?animalId=X, a list) — see H-6 in
+      // docs/production-review.md. Until one exists, redirect to a safe
+      // screen instead of crashing when `extra` is missing (deep link,
+      // notification tap, OS state restoration).
       GoRoute(
         path: AppRoutes.matchDetail,
+        redirect: (context, state) =>
+            state.extra == null ? AppRoutes.matches : null,
         builder: (_, state) => MatchDetailScreen(
           match: state.extra! as MatchItem,
         ),
       ),
       GoRoute(
         path: AppRoutes.chat,
+        redirect: (context, state) =>
+            state.extra == null ? AppRoutes.matches : null,
         builder: (_, state) => ChatScreen(
           match: state.extra! as MatchItem,
         ),
@@ -168,13 +186,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     });
 
     // Handle notification tap when app was in background.
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    final msgSub = FirebaseMessaging.onMessageOpenedApp.listen((message) {
       _handleNotificationTap(message, router);
     });
 
     // Handle tap on a local notification shown while app was in foreground.
-    ref.read(notificationServiceProvider).onLocalTap.listen((route) {
+    final tapSub = ref.read(notificationServiceProvider).onLocalTap.listen((route) {
       if (route != null) router.go(route);
+    });
+
+    ref.onDispose(() {
+      msgSub.cancel();
+      tapSub.cancel();
     });
   }
 

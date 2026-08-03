@@ -19,38 +19,45 @@ final streamChatServiceProvider = Provider<StreamChatService>((ref) {
 
 final chatChannelProvider = FutureProvider.autoDispose
     .family<Channel, String>((ref, matchId) async {
-  // ignore: avoid_print
-  print('[Chat] building chatChannelProvider for match $matchId');
+  if (kDebugMode) {
+    debugPrint('[Chat] building chatChannelProvider for match $matchId');
+  }
 
   final breeder = ref.read(authNotifierProvider)!;
   final repo = ref.read(matchRepositoryProvider);
   final chatService = ref.read(streamChatServiceProvider);
 
   try {
-    // ignore: avoid_print
-    print('[Chat] fetching chat token...');
+    if (kDebugMode) {
+      debugPrint('[Chat] fetching chat token...');
+    }
     final tokenData = await repo.getChatToken(matchId, breederId: breeder.id);
     final token = tokenData['token'] as String;
     final channelId = tokenData['channelId'] as String;
     final channelType = tokenData['channelType'] as String;
-    // ignore: avoid_print
-    print('[Chat] token fetched. channelId=$channelId');
+    if (kDebugMode) {
+      debugPrint('[Chat] token fetched. channelId=$channelId');
+    }
 
-    // ignore: avoid_print
-    print('[Chat] connecting user ${breeder.id}...');
+    if (kDebugMode) {
+      debugPrint('[Chat] connecting user ${breeder.id}...');
+    }
     await chatService.connectUser(
       userId: breeder.id,
       userName: breeder.name,
       token: token,
     );
-    // ignore: avoid_print
-    print('[Chat] user connected.');
+    if (kDebugMode) {
+      debugPrint('[Chat] user connected.');
+    }
 
-    // ignore: avoid_print
-    print('[Chat] opening channel...');
+    if (kDebugMode) {
+      debugPrint('[Chat] opening channel...');
+    }
     final channel = await chatService.openChannel(channelType, channelId);
-    // ignore: avoid_print
-    print('[Chat] channel open. Done.');
+    if (kDebugMode) {
+      debugPrint('[Chat] channel open. Done.');
+    }
 
     // Register FCM token with Stream (mobile only).
     if (!kIsWeb) {
@@ -58,19 +65,22 @@ final chatChannelProvider = FutureProvider.autoDispose
         final fcmToken = await ref.read(notificationServiceProvider).getToken();
         if (fcmToken != null) {
           await chatService.client.addDevice(fcmToken, PushProvider.firebase, pushProviderName: 'firebase-service-account');
-          // ignore: avoid_print
-          print('[Chat] addDevice ok.');
+          if (kDebugMode) {
+            debugPrint('[Chat] addDevice ok.');
+          }
         }
       } catch (e) {
-        // ignore: avoid_print
-        print('[Chat] addDevice error (non-fatal): $e');
+        if (kDebugMode) {
+          debugPrint('[Chat] addDevice error (non-fatal): $e');
+        }
       }
     }
 
     return channel;
   } catch (e, st) {
-    // ignore: avoid_print
-    print('[Chat] ERROR in chatChannelProvider: $e\n$st');
+    if (kDebugMode) {
+      debugPrint('[Chat] ERROR in chatChannelProvider: $e\n$st');
+    }
     rethrow;
   }
 });

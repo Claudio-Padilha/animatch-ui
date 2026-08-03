@@ -9,7 +9,13 @@ class CloudinaryUploader {
   const CloudinaryUploader(this._dio);
 
   final Dio _dio; // app's authed Dio — used only for the signature request
-  static final _cdnDio = Dio(); // plain Dio for direct Cloudinary upload
+  static final _cdnDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      sendTimeout: const Duration(seconds: 120),
+      receiveTimeout: const Duration(seconds: 30),
+    ),
+  ); // plain Dio for direct Cloudinary upload
 
   /// Opens the image picker (gallery or camera), uploads to Cloudinary, and
   /// returns the secure_url. Returns null if the user cancelled.

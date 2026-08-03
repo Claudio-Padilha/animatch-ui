@@ -75,6 +75,25 @@ class AnimalDetailData {
         geneticIndices: a.geneticIndices,
       );
 
+  /// Used as a provider-backed fallback when navigating to the detail route
+  /// without an in-memory `DiscoverAnimal`/`MatchAnimal` already at hand (e.g.
+  /// a deep link or restored app state) — see H-6 in docs/production-review.md.
+  factory AnimalDetailData.fromHerdAnimal(HerdAnimal a) => AnimalDetailData(
+        id: a.id,
+        name: a.name,
+        species: a.species.apiValue,
+        breed: a.breed,
+        sex: a.sex,
+        photoUrls: a.imagePaths,
+        locationCity: a.city ?? '',
+        locationState: a.state ?? '',
+        locationDirections: a.propertyName,
+        age: a.age,
+        registrationCode: a.registration,
+        description: a.description,
+        geneticIndices: a.geneticIndices,
+      );
+
   // location is stored as "City, State" in MatchAnimal
   static String _parseCity(String? location) {
     if (location == null || !location.contains(',')) return location ?? '';

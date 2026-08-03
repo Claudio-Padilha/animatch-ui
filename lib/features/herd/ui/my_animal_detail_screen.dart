@@ -153,7 +153,7 @@ class _MyAnimalDetailScreenState extends ConsumerState<MyAnimalDetailScreen> {
               right: 8,
               child: _EditButton(
                 onTap: () =>
-                    context.push(AppRoutes.editAnimal, extra: animal),
+                    context.push(AppRoutes.editAnimalPath(animal.id)),
               ),
             ),
           ],

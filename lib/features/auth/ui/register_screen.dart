@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,8 +23,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     try {
       await ref.read(authNotifierProvider.notifier).signUp();
     } catch (e, st) {
-      // ignore: avoid_print
-      print('[SignUp] ERROR: $e\n$st');
+      if (kDebugMode) {
+        debugPrint('[SignUp] ERROR: $e\n$st');
+      }
       if (!mounted) return;
       final cancelled = e.toString().contains('UserCancelled') ||
           e.toString().contains('user_cancelled');

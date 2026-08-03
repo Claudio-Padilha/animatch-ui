@@ -93,8 +93,12 @@ class _AnimalPairWidget extends StatelessWidget {
   final MatchItem match;
 
   void _openDetail(BuildContext context, MatchAnimal animal) {
+    // id should always be present for a real match's animal — guard defensively
+    // rather than push a route with an empty path segment.
+    final id = animal.id;
+    if (id == null) return;
     context.push(
-      AppRoutes.matchAnimalDetail,
+      AppRoutes.matchAnimalDetailPath(id),
       extra: AnimalDetailData.fromMatchAnimal(animal),
     );
   }

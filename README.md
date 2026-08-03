@@ -15,6 +15,7 @@ Connects cattle and horse breeders across Brazil, helping them find quality anim
   - [2. VS Code](#2-vs-code)
   - [3. Android Toolchain](#3-android-toolchain)
   - [4. Linux Desktop Toolchain (optional)](#4-linux-desktop-toolchain-optional)
+- [Local Configuration Files (Not in Git)](#local-configuration-files-not-in-git)
 - [Running the App](#running-the-app)
 - [Project Structure](#project-structure)
 - [Development Workflow](#development-workflow)
@@ -202,6 +203,68 @@ flutter doctor           # Linux toolchain should show ✓
 
 ---
 
+## Local Configuration Files (Not in Git)
+
+These files are intentionally gitignored and must be obtained/created separately by every developer (and CI runner) — a fresh clone will not build or run without them.
+
+### `android/app/google-services.json`
+
+Required for **any** Android build, debug or release — without it, the `google-services` Gradle plugin fails immediately with `File google-services.json is missing`.
+
+**How to get it:**
+- Ask a teammate with Firebase Console access to download it from **Firebase Console → ⚙️ Configurações do projeto → Animatch Android → google-services.json**
+- Save it at `android/app/google-services.json`
+
+This file is not treated as a traditional secret — its `apiKey` is restricted server-side (package name + SHA-1 certificate fingerprint allowlist, configured in the Firebase / Google Cloud Console credentials page), not by keeping the file hidden. It can be shared over a normal internal channel (Slack, team drive) rather than a password manager.
+
+**If you generate a new signing certificate** (e.g. your own debug keystore on a fresh machine, or a new release keystore), its SHA-1 and SHA-256 fingerprints must first be added in **Firebase Console → Configurações do projeto → Animatch Android → "Adicionar impressão digital"**, otherwise Firebase-dependent features tied to that cert won't work — get an updated `google-services.json` afterward.
+
+### `android/key.properties`
+
+Required only for **release** builds (`flutter build apk --release`, `flutter build appbundle`). Plain `flutter run` (debug) doesn't need it — it falls back to Android's auto-generated debug keystore.
+
+**How to get it:**
+- Obtain the production keystore (`.jks`) file and its passwords from whoever holds them — these **are** real secrets, so they should come from a password manager / secrets vault, not chat
+- Create `android/key.properties`:
+  ```properties
+  storePassword=<keystore password>
+  keyPassword=<key password>
+  keyAlias=animatch_upload
+  storeFile=<path to the .jks file on your machine>
+  ```
+
+See `docs/production-review.md` (C-1) for the full signing setup rationale.
+
+### `config/*.env.json`
+
+Required for **every** run and build, debug or release, on **any** platform — without it, the app throws `StateError` at startup (`AUTH0_DOMAIN, AUTH0_CLIENT_ID, and AUTH0_AUDIENCE must be set via --dart-define`). There is no hardcoded fallback; see `docs/production-review.md` (C-4) for why. `STREAM_CHAT_API_KEY` (see C-4/H-7) lives in the same files but doesn't currently gate app startup — a missing value only breaks the chat feature, not the whole app.
+
+**How to get it:**
+- `config/local.env.json` — dev tenant values, ask a teammate or copy from the team's shared secrets vault. Shape:
+  ```json
+  {
+    "ENV": "local",
+    "AUTH0_DOMAIN": "<dev tenant domain>",
+    "AUTH0_CLIENT_ID": "<dev client id>",
+    "AUTH0_AUDIENCE": "<dev API audience>",
+    "STREAM_CHAT_API_KEY": "<dev Stream Chat API key>"
+  }
+  ```
+- `config/staging.env.json` / `config/production.env.json` — same shape, with real staging/production values. **Real secrets** — get these from a password manager / secrets vault, not chat.
+
+**Using them:**
+```bash
+# CLI
+flutter run --dart-define-from-file=config/local.env.json
+flutter build appbundle --release --dart-define-from-file=config/production.env.json
+```
+
+VS Code launch configs (`.vscode/launch.json`, also gitignored) already reference these files by name — just make sure the files exist locally before hitting F5.
+
+**If a value changes** (e.g. rotating the Auth0 client secret, switching tenants), update the relevant `config/*.env.json` file; nothing else in the repo needs to change.
+
+---
+
 ## Running the App
 
 ```bash
@@ -211,17 +274,17 @@ flutter pub get
 # List available devices
 flutter devices
 
-# Run on Chrome (web) — works without any additional setup
-flutter run -d chrome
+# Run on Chrome (web) — requires config/local.env.json, see "Local Configuration Files" above
+flutter run -d chrome --dart-define-from-file=config/local.env.json
 
 # Run on Android emulator (requires Android toolchain)
-flutter run -d android
+flutter run -d android --dart-define-from-file=config/local.env.json
 
 # Run on a specific device by ID
-flutter run -d <device-id>
+flutter run -d <device-id> --dart-define-from-file=config/local.env.json
 
 # Run in release mode (closer to production performance)
-flutter run --release -d chrome
+flutter run --release -d chrome --dart-define-from-file=config/local.env.json
 ```
 
 ### Hot Reload & Hot Restart

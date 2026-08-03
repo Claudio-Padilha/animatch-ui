@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -18,6 +20,8 @@ class AnimatchApp extends ConsumerStatefulWidget {
 }
 
 class _AnimatchAppState extends ConsumerState<AnimatchApp> {
+  StreamSubscription<String>? _tokenRefreshSub;
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +31,12 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
     } else {
       ref.read(authInitializedProvider.notifier).setInitialized();
     }
+  }
+
+  @override
+  void dispose() {
+    _tokenRefreshSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _tryRestoreSession() async {
@@ -64,45 +74,56 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
       final deviceTokenService = ref.read(deviceTokenServiceProvider);
 
       final settings = await notificationService.requestPermission();
-      // ignore: avoid_print
-      print('[FCM] permission status: ${settings.authorizationStatus}');
+      if (kDebugMode) {
+        debugPrint('[FCM] permission status: ${settings.authorizationStatus}');
+      }
 
       final token = await notificationService.getToken();
-      // ignore: avoid_print
-      print('[FCM] device token: ${token ?? "NULL — FCM token unavailable"}');
+      if (kDebugMode) {
+        debugPrint('[FCM] device token: ${token ?? "NULL — FCM token unavailable"}');
+      }
 
       if (token != null) {
         await deviceTokenService.register(token, breederId: breeder.id);
-        // ignore: avoid_print
-        print('[FCM] token registered with backend for breederId=${breeder.id}');
+        if (kDebugMode) {
+          debugPrint('[FCM] token registered with backend for breederId=${breeder.id}');
+        }
       } else {
-        // ignore: avoid_print
-        print('[FCM] skipping registration — getToken() returned null');
+        if (kDebugMode) {
+          debugPrint('[FCM] skipping registration — getToken() returned null');
+        }
       }
 
-      notificationService.onTokenRefresh.listen((newToken) {
-        // ignore: avoid_print
-        print('[FCM] token refreshed, re-registering...');
+      _tokenRefreshSub?.cancel();
+      _tokenRefreshSub = notificationService.onTokenRefresh.listen((newToken) {
+        if (kDebugMode) {
+          debugPrint('[FCM] token refreshed, re-registering...');
+        }
         deviceTokenService.register(newToken, breederId: breeder.id);
       });
     } catch (e) {
-      // ignore: avoid_print
-      print('[FCM] _onLogin error: $e');
+      if (kDebugMode) {
+        debugPrint('[FCM] _onLogin error: $e');
+      }
     }
   }
 
   Future<void> _onLogout(Breeder breeder) async {
     if (kIsWeb) return;
+    _tokenRefreshSub?.cancel();
+    _tokenRefreshSub = null;
     try {
       final token = await ref.read(notificationServiceProvider).getToken();
       if (token != null) {
         await ref.read(deviceTokenServiceProvider).unregister(token, breederId: breeder.id);
-        // ignore: avoid_print
-        print('[FCM] token unregistered on logout.');
+        if (kDebugMode) {
+          debugPrint('[FCM] token unregistered on logout.');
+        }
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('[FCM] _onLogout error: $e');
+      if (kDebugMode) {
+        debugPrint('[FCM] _onLogout error: $e');
+      }
     }
   }
 }

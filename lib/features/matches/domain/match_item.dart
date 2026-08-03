@@ -1,41 +1,38 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 import '../../herd/domain/animal_enums.dart';
 import '../../herd/domain/herd_animal.dart';
 
+part 'match_item.freezed.dart';
+
 enum MatchStatus { confirmado, pendente }
 
-class MatchAnimal {
-  const MatchAnimal({
-    this.id,
-    required this.name,
-    required this.breed,
-    this.species = 'cattle',
-    this.photoUrls = const [],
-    this.age,
-    this.registry,
-    this.location,
-    this.locationDirections,
-    this.description,
-    this.geneticIndices,
-  });
+@freezed
+abstract class MatchAnimal with _$MatchAnimal {
+  const MatchAnimal._();
 
-  final String? id;
-  final String name;
-  final String breed; // e.g. "Nelore · Macho"
-  final String species;
-  final List<String> photoUrls;
-  final int? age;
-  final String? registry;
-  final String? location;
-  final String? locationDirections;
-  final String? description;
-  final GeneticIndices? geneticIndices;
+  const factory MatchAnimal({
+    String? id,
+    required String name,
+    required String breed, // e.g. "Nelore · Macho"
+    @Default('cattle') String species,
+    @Default(<String>[]) List<String> photoUrls,
+    int? age,
+    String? registry,
+    String? location,
+    String? locationDirections,
+    String? description,
+    GeneticIndices? geneticIndices,
+  }) = _MatchAnimal;
 
   String get imagePath => photoUrls.isNotEmpty ? photoUrls.first : '';
 
   double? get depPeso => geneticIndices?.milkRestrictionWeight;
   double? get depConf => geneticIndices?.conformacao;
 
-  factory MatchAnimal.fromJson(Map<String, dynamic> json) {
+  /// Hand-written, not a freezed `factory fromJson` — see the equivalent
+  /// note on `HerdAnimal.fromJson`.
+  static MatchAnimal fromJson(Map<String, dynamic> json) {
     final breedApiValue = json['breed'] as String? ?? '';
     String breedLabel;
     try {
@@ -76,38 +73,34 @@ class MatchAnimal {
   }
 }
 
-class MatchContact {
-  const MatchContact({
-    required this.breederName,
-    required this.phone,
-    this.email,
-    this.website,
-  });
-
-  final String breederName;
-  final String phone;
-  final String? email;
-  final String? website;
+@freezed
+abstract class MatchContact with _$MatchContact {
+  const factory MatchContact({
+    required String breederName,
+    required String phone,
+    String? email,
+    String? website,
+  }) = _MatchContact;
 }
 
-class MatchItem {
-  const MatchItem({
-    required this.id,
-    required this.status,
-    required this.timeLabel,
-    required this.yourAnimal,
-    required this.theirAnimal,
-    required this.contact,
-  });
+@freezed
+abstract class MatchItem with _$MatchItem {
+  const MatchItem._();
 
-  final String id;
-  final MatchStatus status;
-  final String timeLabel;
-  final MatchAnimal yourAnimal;
-  final MatchAnimal theirAnimal;
-  final MatchContact contact;
+  const factory MatchItem({
+    required String id,
+    required MatchStatus status,
+    required String timeLabel,
+    required MatchAnimal yourAnimal,
+    required MatchAnimal theirAnimal,
+    required MatchContact contact,
+  }) = _MatchItem;
 
-  factory MatchItem.fromJson(
+  /// Hand-written, not a freezed `factory fromJson` — this also takes an
+  /// extra required `animalId` param to resolve yours-vs-theirs, which a
+  /// generated single-arg `fromJson` couldn't support anyway. See the
+  /// equivalent note on `HerdAnimal.fromJson`.
+  static MatchItem fromJson(
     Map<String, dynamic> json, {
     required String animalId,
   }) {

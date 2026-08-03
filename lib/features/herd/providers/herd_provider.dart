@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
+import '../../../shared/domain/animal_detail_data.dart';
 import '../data/herd_repository.dart';
 import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
@@ -14,6 +15,17 @@ final herdRepositoryProvider = Provider<HerdRepository>(
 final animalDetailProvider = FutureProvider.autoDispose
     .family<HerdAnimal, String>((ref, id) =>
         ref.read(herdRepositoryProvider).getAnimal(id));
+
+/// Provider-backed fallback for the `animalDetail`/`matchAnimalDetail` routes
+/// when no in-memory `extra` is available (deep link, notification tap, or
+/// OS state restoration) — see H-6 in docs/production-review.md. `GET
+/// /animals/:id` isn't scoped to the current breeder, so this works for any
+/// animal, not just the current breeder's own herd.
+final animalDetailDataProvider = FutureProvider.autoDispose
+    .family<AnimalDetailData, String>((ref, id) async {
+  final animal = await ref.read(herdRepositoryProvider).getAnimal(id);
+  return AnimalDetailData.fromHerdAnimal(animal);
+});
 
 // ── Herd list state ───────────────────────────────────────────────────────────
 

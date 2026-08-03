@@ -1,14 +1,66 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../features/herd/domain/herd_animal.dart';
+import '../../features/herd/providers/herd_provider.dart';
 import '../domain/animal_detail_data.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/circle_action_button.dart';
+
+/// Route-level entry point: uses `extra` when the caller already has the
+/// object in memory (the common in-app-tap case, avoids a redundant fetch),
+/// falling back to a provider-backed fetch by id otherwise (deep link,
+/// notification tap, OS state restoration — see H-6 in
+/// docs/production-review.md).
+class AnimalDetailLoader extends ConsumerWidget {
+  const AnimalDetailLoader({
+    super.key,
+    required this.animalId,
+    this.animal,
+    this.showCtas = true,
+  });
+
+  final String animalId;
+  final AnimalDetailData? animal;
+  final bool showCtas;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (animal != null) {
+      return AnimalDetailScreen(animal: animal!, showCtas: showCtas);
+    }
+
+    final animalAsync = ref.watch(animalDetailDataProvider(animalId));
+    return animalAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              const Text('Erro ao carregar animal'),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: () => ref.invalidate(animalDetailDataProvider(animalId)),
+                child: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      data: (data) => AnimalDetailScreen(animal: data, showCtas: showCtas),
+    );
+  }
+}
 
 class AnimalDetailScreen extends StatefulWidget {
   const AnimalDetailScreen({super.key, required this.animal, this.showCtas = true});

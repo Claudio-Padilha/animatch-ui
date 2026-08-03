@@ -37,6 +37,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O Animatch usa a câmera para adicionar fotos de animais e do seu perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Animatch acessa a galeria para adicionar fotos de animais e do seu perfil.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O Animatch pode salvar fotos dos seus animais na galeria.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

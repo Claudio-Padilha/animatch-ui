@@ -1,7 +1,7 @@
 import 'package:stream_chat_flutter/stream_chat_flutter.dart';
 
 class StreamChatService {
-  static const _apiKey = 'chbd9fpt9qxu';
+  static const _apiKey = String.fromEnvironment('STREAM_CHAT_API_KEY');
 
   final StreamChatClient client = StreamChatClient(
     _apiKey,
