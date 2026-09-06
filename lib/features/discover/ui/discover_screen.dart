@@ -272,7 +272,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           match: match,
           onViewMatch: () {
             Navigator.of(ctx).pop();
-            context.push(AppRoutes.matchDetail, extra: match);
+            context.push(AppRoutes.matchDetailPath(match.id));
           },
         ),
       );

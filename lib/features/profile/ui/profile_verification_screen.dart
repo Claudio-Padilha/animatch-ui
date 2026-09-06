@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/services/cloudinary_uploader.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/domain/breeder_association.dart';
+import '../../../shared/utils/cpf_validator.dart';
 import '../../../shared/widgets/address_form_fields.dart';
 import '../../../shared/widgets/associations_picker.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -90,7 +92,9 @@ class _ProfileVerificationScreenState
       );
       context.go(AppRoutes.profile);
     } catch (e, st) {
-      debugPrint('ProfileVerificationScreen.activate error: $e\n$st');
+      if (kDebugMode) {
+        debugPrint('ProfileVerificationScreen.activate error: $e\n$st');
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Erro ao enviar solicitação. Tente novamente.')),
@@ -203,8 +207,7 @@ class _ProfileVerificationScreenState
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Campo obrigatório';
-                final digits = v.replaceAll(RegExp(r'\D'), '');
-                if (digits.length != 11) return 'CPF inválido';
+                if (!isValidCpf(v)) return 'CPF inválido';
                 return null;
               },
             ),

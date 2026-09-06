@@ -34,7 +34,10 @@ class DiscoverAnimal {
   final String? pendingMatchId;
   final GeneticIndices? geneticIndices;
 
-  String get locationFull => '$locationCity, $locationState';
+  /// "City, ST", or just "ST" when the city is masked (non-owner view of a
+  /// free-tier animal), or "" when neither is present.
+  String get locationFull =>
+      [locationCity, locationState].where((s) => s.isNotEmpty).join(', ');
   String get ageLabel => age != null ? '$age ${age == 1 ? 'ano' : 'anos'}' : '';
 
   factory DiscoverAnimal.fromJson(Map<String, dynamic> json) {

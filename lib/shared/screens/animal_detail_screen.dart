@@ -1,23 +1,22 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
-import '../../features/herd/domain/herd_animal.dart';
-import '../../features/herd/providers/herd_provider.dart';
+import '../../features/herd/domain/herd_animal.dart' show GeneticIndices;
 import '../domain/animal_detail_data.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/circle_action_button.dart';
 
-/// Route-level entry point: uses `extra` when the caller already has the
-/// object in memory (the common in-app-tap case, avoids a redundant fetch),
-/// falling back to a provider-backed fetch by id otherwise (deep link,
-/// notification tap, OS state restoration — see H-6 in
-/// docs/production-review.md).
-class AnimalDetailLoader extends ConsumerWidget {
+/// Route-level entry point for `/animal/:animalId` (a bare discovery
+/// candidate). Renders the in-memory `extra` when present. There is no
+/// by-id fetch fallback anymore — `GET /animals/:id` is owner-only, so a
+/// candidate animal can't be re-fetched — and no product flow deep-links a
+/// lone candidate, so a cold open with no `extra` just returns to discovery.
+class AnimalDetailLoader extends StatelessWidget {
   const AnimalDetailLoader({
     super.key,
     required this.animalId,
@@ -30,35 +29,15 @@ class AnimalDetailLoader extends ConsumerWidget {
   final bool showCtas;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (animal != null) {
-      return AnimalDetailScreen(animal: animal!, showCtas: showCtas);
+  Widget build(BuildContext context) {
+    final data = animal;
+    if (data == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) context.go(AppRoutes.discover);
+      });
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
-    final animalAsync = ref.watch(animalDetailDataProvider(animalId));
-    return animalAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) => Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-              const SizedBox(height: 12),
-              const Text('Erro ao carregar animal'),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () => ref.invalidate(animalDetailDataProvider(animalId)),
-                child: const Text('Tentar novamente'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      data: (data) => AnimalDetailScreen(animal: data, showCtas: showCtas),
-    );
+    return AnimalDetailScreen(animal: data, showCtas: showCtas);
   }
 }
 

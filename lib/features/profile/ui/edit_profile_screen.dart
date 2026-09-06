@@ -36,6 +36,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _zip;
 
   List<BreederAssociation> _associations = [];
+  // Only send `associations` on save if the picker was actually touched —
+  // omitting the key leaves the backend's set untouched.
+  bool _associationsDirty = false;
   bool _isLoading = false;
   String? _pictureUrl;
   bool _isUploadingAvatar = false;
@@ -78,13 +81,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    ref.listenManual(currentBreederProvider, (_, next) {
-      next.whenData((b) {
-        ref.read(authNotifierProvider.notifier).updateBreeder(b);
-        if (mounted) setState(() => _pictureUrl = b.avatarUrl);
-      });
-    });
     _pictureUrl = ref.read(authNotifierProvider)?.avatarUrl;
+    _refreshBreeder();
     final p = ref.read(profileProvider);
     _name = TextEditingController(text: p.name);
     _phone = TextEditingController(text: p.phone);
@@ -95,6 +93,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _state = TextEditingController(text: p.state);
     _zip = TextEditingController();
     _associations = List.of(p.associations);
+  }
+
+  // Re-sync the breeder with the backend so any server-side profile changes
+  // are reflected. refreshBreeder() updates auth state itself; we just mirror
+  // the fresh avatar into local state.
+  Future<void> _refreshBreeder() async {
+    await ref.read(authNotifierProvider.notifier).refreshBreeder();
+    if (mounted) {
+      setState(() => _pictureUrl = ref.read(authNotifierProvider)?.avatarUrl);
+    }
   }
 
   @override
@@ -119,8 +127,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
             farmName:
                 _farmName.text.trim().isEmpty ? null : _farmName.text.trim(),
-            associations: _associations,
             pictureUrl: _pictureUrl,
+            associations: _associationsDirty ? _associations : null,
             directions:
                 _street.text.trim().isEmpty ? null : _street.text.trim(),
             zipCode: _zip.text.trim().isEmpty ? null : _zip.text.trim(),
@@ -200,7 +208,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             const SizedBox(height: 12),
             AssociationsPicker(
               initialValue: _associations,
-              onChanged: (list) => setState(() => _associations = list),
+              onChanged: (list) => setState(() {
+                _associations = list;
+                _associationsDirty = true;
+              }),
             ),
             const SizedBox(height: 28),
             _SectionLabel('CPF'),

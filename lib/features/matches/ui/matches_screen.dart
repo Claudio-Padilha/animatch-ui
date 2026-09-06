@@ -77,7 +77,7 @@ class _MatchCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: InkWell(
         onTap: isConfirmed
-            ? () => context.push(AppRoutes.matchDetail, extra: match)
+            ? () => context.push(AppRoutes.matchDetailPath(match.id))
             : null,
         borderRadius: BorderRadius.circular(16),
         child: Padding(

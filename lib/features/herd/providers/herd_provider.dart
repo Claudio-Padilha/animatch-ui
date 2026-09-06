@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
-import '../../../shared/domain/animal_detail_data.dart';
 import '../data/herd_repository.dart';
 import '../domain/animal_enums.dart';
 import '../domain/herd_animal.dart';
@@ -12,37 +11,92 @@ final herdRepositoryProvider = Provider<HerdRepository>(
   (ref) => HerdRepository(ref.watch(dioProvider)),
 );
 
+/// The 4 keys the `geneticIndices` object must carry — all-or-nothing: the
+/// backend rejects a partial object (and a `0`, which must be `null`).
+const _geneticIndexKeys = [
+  'birth_weight',
+  'milk_restriction_weight',
+  'weight_18m',
+  'fertility_index',
+];
+
+/// Shared payload shape for `POST /animals` and `PATCH /animals/:id`.
+/// Both endpoints share `CreateAnimalBody`; `PATCH` is a shallow partial, so
+/// `address` still needs `city`/`state` and `geneticIndices` still needs all
+/// four keys — which is exactly what this always sends.
+Map<String, dynamic> buildAnimalPayload({
+  required String name,
+  required AnimalSpecies species,
+  required AnimalBreed breed,
+  required String sexLabel,
+  required String propertyName,
+  required String zipCode,
+  required String city,
+  required String state,
+  required bool available,
+  String? description,
+  int? age,
+  String? registrationNumber,
+  Map<String, double?> geneticIndices = const {},
+  List<String>? imageUrls,
+}) {
+  final payload = <String, dynamic>{
+    'name': name,
+    'species': species.apiValue,
+    'breed': breed.apiValue,
+    'sex': sexApiValue[sexLabel]!.apiValue,
+    // status enum is 'active' | 'paused' — never 'inactive'.
+    'status': available ? 'active' : 'paused',
+    'address': {
+      'directions': propertyName,
+      'zipCode': zipCode,
+      'city': city,
+      'state': state.toUpperCase(),
+    },
+    if (description != null && description.isNotEmpty) 'description': description,
+    'age': ?age,
+    // Canonical key is camelCase `registrationNumber` on both POST and PATCH
+    // (was inconsistently snake_case on update — K-1).
+    if (registrationNumber != null && registrationNumber.isNotEmpty)
+      'registrationNumber': registrationNumber,
+    if (imageUrls != null && imageUrls.isNotEmpty) 'photoUrls': imageUrls,
+  };
+
+  final indices = {
+    for (final k in _geneticIndexKeys) k: _positiveOrNull(geneticIndices[k]),
+  };
+  if (indices.values.any((v) => v != null)) payload['geneticIndices'] = indices;
+
+  return payload;
+}
+
+/// The backend requires each genetic index to be `> 0` or `null` — a `0` (or a
+/// stray negative) is a 400, so collapse those to `null`.
+double? _positiveOrNull(double? v) => (v != null && v > 0) ? v : null;
+
+/// Fetches one of the caller's **own** animals by id (`GET /animals/:id` is
+/// owner-only). Used by `myAnimalDetail` / `editAnimal`.
 final animalDetailProvider = FutureProvider.autoDispose
     .family<HerdAnimal, String>((ref, id) =>
         ref.read(herdRepositoryProvider).getAnimal(id));
-
-/// Provider-backed fallback for the `animalDetail`/`matchAnimalDetail` routes
-/// when no in-memory `extra` is available (deep link, notification tap, or
-/// OS state restoration) — see H-6 in docs/production-review.md. `GET
-/// /animals/:id` isn't scoped to the current breeder, so this works for any
-/// animal, not just the current breeder's own herd.
-final animalDetailDataProvider = FutureProvider.autoDispose
-    .family<AnimalDetailData, String>((ref, id) async {
-  final animal = await ref.read(herdRepositoryProvider).getAnimal(id);
-  return AnimalDetailData.fromHerdAnimal(animal);
-});
 
 // ── Herd list state ───────────────────────────────────────────────────────────
 
 class HerdNotifier extends AsyncNotifier<List<HerdAnimal>> {
   @override
   Future<List<HerdAnimal>> build() async {
-    final breederId = ref.watch(authNotifierProvider)?.id;
-    if (breederId == null) return [];
-    return ref.read(herdRepositoryProvider).getAnimals(breederId);
+    // Watch auth so the herd reloads on login/logout; the backend scopes
+    // `GET /animals` to the token holder, so no id is passed.
+    final loggedIn = ref.watch(authNotifierProvider) != null;
+    if (!loggedIn) return [];
+    return ref.read(herdRepositoryProvider).getAnimals();
   }
 
   Future<void> refresh() async {
-    final breederId = ref.read(authNotifierProvider)?.id;
-    if (breederId == null) return;
+    if (ref.read(authNotifierProvider) == null) return;
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(herdRepositoryProvider).getAnimals(breederId),
+      () => ref.read(herdRepositoryProvider).getAnimals(),
     );
   }
 
@@ -86,34 +140,22 @@ class AddAnimalNotifier extends AsyncNotifier<void> {
     Map<String, double?> geneticIndices = const {},
     List<String> imageUrls = const [],
   }) async {
-    final breederId = ref.read(authNotifierProvider)!.id;
-
-    final payload = <String, dynamic>{
-      'breederId': breederId,
-      'name': name,
-      'species': species.apiValue,
-      'breed': breed.apiValue,
-      'sex': sexApiValue[sexLabel]!.apiValue,
-      'status': available ? 'active' : 'inactive',
-      'address': {
-        'directions': propertyName,
-        'zipCode': zipCode,
-        'city': city,
-        'state': state.toUpperCase(),
-      },
-      if (description != null && description.isNotEmpty)
-        'description': description,
-      'age': ?age,
-      if (registrationNumber != null && registrationNumber.isNotEmpty)
-        'registrationNumber': registrationNumber,
-      if (imageUrls.isNotEmpty) 'photoUrls': imageUrls,
-    };
-
-    final filteredIndices = {
-      for (final e in geneticIndices.entries)
-        if (e.value != null) e.key: e.value,
-    };
-    if (filteredIndices.isNotEmpty) payload['geneticIndices'] = filteredIndices;
+    final payload = buildAnimalPayload(
+      name: name,
+      species: species,
+      breed: breed,
+      sexLabel: sexLabel,
+      propertyName: propertyName,
+      zipCode: zipCode,
+      city: city,
+      state: state,
+      available: available,
+      description: description,
+      age: age,
+      registrationNumber: registrationNumber,
+      geneticIndices: geneticIndices,
+      imageUrls: imageUrls.isEmpty ? null : imageUrls,
+    );
 
     this.state = const AsyncLoading();
     final result = await AsyncValue.guard(
@@ -155,31 +197,22 @@ class UpdateAnimalNotifier extends AsyncNotifier<void> {
     Map<String, double?> geneticIndices = const {},
     List<String>? imageUrls,
   }) async {
-    final payload = <String, dynamic>{
-      'name': name,
-      'species': species.apiValue,
-      'breed': breed.apiValue,
-      'sex': sexApiValue[sexLabel]!.apiValue,
-      'status': available ? 'active' : 'inactive',
-      'address': {
-        'directions': propertyName,
-        'zipCode': zipCode,
-        'city': city,
-        'state': state.toUpperCase(),
-      },
-      if (description != null && description.isNotEmpty)
-        'description': description,
-      'age': ?age,
-      if (registrationNumber != null && registrationNumber.isNotEmpty)
-        'registration_number': registrationNumber,
-      if (imageUrls != null && imageUrls.isNotEmpty) 'photoUrls': imageUrls,
-    };
-
-    final filteredIndices = {
-      for (final e in geneticIndices.entries)
-        if (e.value != null) e.key: e.value,
-    };
-    if (filteredIndices.isNotEmpty) payload['geneticIndices'] = filteredIndices;
+    final payload = buildAnimalPayload(
+      name: name,
+      species: species,
+      breed: breed,
+      sexLabel: sexLabel,
+      propertyName: propertyName,
+      zipCode: zipCode,
+      city: city,
+      state: state,
+      available: available,
+      description: description,
+      age: age,
+      registrationNumber: registrationNumber,
+      geneticIndices: geneticIndices,
+      imageUrls: imageUrls,
+    );
 
     this.state = const AsyncLoading();
     final result = await AsyncValue.guard(

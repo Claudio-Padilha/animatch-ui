@@ -31,7 +31,7 @@ final chatChannelProvider = FutureProvider.autoDispose
     if (kDebugMode) {
       debugPrint('[Chat] fetching chat token...');
     }
-    final tokenData = await repo.getChatToken(matchId, breederId: breeder.id);
+    final tokenData = await repo.getChatToken(matchId);
     final token = tokenData['token'] as String;
     final channelId = tokenData['channelId'] as String;
     final channelType = tokenData['channelType'] as String;
@@ -92,6 +92,14 @@ final matchRepositoryProvider = Provider<MatchRepository>(
 final matchesProvider = FutureProvider.autoDispose
     .family<List<MatchItem>, String>((ref, animalId) =>
         ref.read(matchRepositoryProvider).getMatches(animalId));
+
+/// A single match by id, fetched fresh from `GET /matches/:id` — the source of
+/// truth for the match-detail and chat screens (status and breeder contact go
+/// stale the instant the other party acts). Also recovers these screens on a
+/// cold deep-link / push-tap / OS restoration, where no in-memory match exists.
+final matchDetailProvider = FutureProvider.autoDispose
+    .family<MatchItem, String>((ref, matchId) =>
+        ref.read(matchRepositoryProvider).getMatch(matchId));
 
 // ─── Cancel match ─────────────────────────────────────────────────────────────
 

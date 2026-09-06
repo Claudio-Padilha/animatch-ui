@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
+import '../../features/onboarding/providers/onboarding_provider.dart';
 import 'app_router.dart';
 
 class RouterNotifier extends ChangeNotifier {
   RouterNotifier(this._ref) {
     _ref.listen<dynamic>(authNotifierProvider, (prev, next) => notifyListeners());
     _ref.listen<bool>(authInitializedProvider, (prev, next) => notifyListeners());
+    _ref.listen<bool>(hasSeenOnboardingProvider, (prev, next) => notifyListeners());
   }
 
   final Ref _ref;
@@ -28,7 +30,10 @@ class RouterNotifier extends ChangeNotifier {
         loc == AppRoutes.register;
 
     if (!isLoggedIn) {
-      if (loc == AppRoutes.splash || !isPublic) return AppRoutes.onboarding;
+      if (loc == AppRoutes.splash || !isPublic) {
+        final hasSeenOnboarding = _ref.read(hasSeenOnboardingProvider);
+        return hasSeenOnboarding ? AppRoutes.login : AppRoutes.onboarding;
+      }
       return null;
     }
 

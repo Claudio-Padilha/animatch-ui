@@ -16,18 +16,17 @@ class DeviceTokenService {
 
   final Dio _dio;
 
-  Future<void> register(String fcmToken, {required String breederId}) async {
+  Future<void> register(String fcmToken) async {
     await _dio.post<void>(
       '/breeders/device-token',
       data: {
-        'breederId': breederId,
         'token': fcmToken,
         'platform': Platform.isIOS ? 'ios' : 'android',
       },
     );
   }
 
-  Future<void> unregister(String fcmToken, {required String breederId}) async {
+  Future<void> unregister(String fcmToken) async {
     await _dio.delete<void>('/breeders/device-token/${Uri.encodeComponent(fcmToken)}');
     // Stream tokens are not removed on logout — FCM notifies Stream automatically
     // when a token becomes invalid (uninstall, token rotation), which Stream uses

@@ -147,6 +147,23 @@ class _StateCityDropdownsState extends State<_StateCityDropdowns> {
     return Row(
       children: [
         Expanded(
+          flex: 2,
+          child: DropdownButtonFormField<String>(
+            initialValue: stateValue,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Estado',
+              prefixIcon: Icon(Icons.map_outlined, size: 20),
+            ),
+            items: states
+                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                .toList(),
+            onChanged: _onStateChanged,
+            validator: _requiredValidator,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
           flex: 3,
           child: DropdownButtonFormField<String>(
             key: ValueKey('city-$_selectedState'),
@@ -166,23 +183,6 @@ class _StateCityDropdownsState extends State<_StateCityDropdowns> {
                 ? null
                 : (v) =>
                     setState(() => widget.cityController.text = v ?? ''),
-            validator: _requiredValidator,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: DropdownButtonFormField<String>(
-            initialValue: stateValue,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Estado',
-              prefixIcon: Icon(Icons.map_outlined, size: 20),
-            ),
-            items: states
-                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                .toList(),
-            onChanged: _onStateChanged,
             validator: _requiredValidator,
           ),
         ),
@@ -227,23 +227,6 @@ class _StateCityFreeText extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          flex: 3,
-          child: TextFormField(
-            controller: cityController,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Cidade',
-              prefixIcon: Icon(Icons.location_city_outlined, size: 20),
-            ),
-            validator: required
-                ? (v) => (v == null || v.trim().isEmpty)
-                    ? 'Campo obrigatório'
-                    : null
-                : null,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
           flex: 2,
           child: TextFormField(
             controller: stateController,
@@ -255,6 +238,23 @@ class _StateCityFreeText extends StatelessWidget {
               labelText: 'Estado',
               hintText: 'MG',
               prefixIcon: Icon(Icons.map_outlined, size: 20),
+            ),
+            validator: required
+                ? (v) => (v == null || v.trim().isEmpty)
+                    ? 'Campo obrigatório'
+                    : null
+                : null,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 3,
+          child: TextFormField(
+            controller: cityController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Cidade',
+              prefixIcon: Icon(Icons.location_city_outlined, size: 20),
             ),
             validator: required
                 ? (v) => (v == null || v.trim().isEmpty)

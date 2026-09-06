@@ -62,7 +62,11 @@ Future<void> _onBackgroundMessage(RemoteMessage message) async {
 }
 
 class NotificationService {
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  // Lazy so a test fake can subclass this and override every method that
+  // touches Firebase without ever triggering `FirebaseMessaging.instance`
+  // (which throws if `Firebase.initializeApp()` hasn't run) just by being
+  // constructed.
+  FirebaseMessaging get _fcm => FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
 
@@ -113,6 +117,14 @@ class NotificationService {
   Future<String?> getToken() => _fcm.getToken();
 
   Stream<String> get onTokenRefresh => _fcm.onTokenRefresh;
+
+  // Cold-start tap (app was terminated) and background tap (app was
+  // backgrounded) — wrapped here so `routerProvider` never touches
+  // `FirebaseMessaging` directly and can be tested via a fake.
+  Future<RemoteMessage?> getInitialMessage() => _fcm.getInitialMessage();
+
+  Stream<RemoteMessage> get onMessageOpenedApp =>
+      FirebaseMessaging.onMessageOpenedApp;
 
   void dispose() => _tapController.close();
 

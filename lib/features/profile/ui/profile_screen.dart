@@ -13,19 +13,24 @@ import '../providers/profile_provider.dart';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Fetch GET /breeders/:id on load and sync result into auth state so
-    // profileProvider (which derives from authNotifierProvider) rebuilds with fresh data.
-    ref.listen(currentBreederProvider, (_, next) {
-      next.whenData(
-        (b) => ref.read(authNotifierProvider.notifier).updateBreeder(b),
-      );
-    });
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
 
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Re-sync the breeder on load so server-side changes (e.g. a verification
+    // approval) land in auth state; profileProvider derives from it and rebuilds.
+    ref.read(authNotifierProvider.notifier).refreshBreeder();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider);
     final isVerified = ref.watch(authNotifierProvider)?.verifiedBreeder ?? false;
 

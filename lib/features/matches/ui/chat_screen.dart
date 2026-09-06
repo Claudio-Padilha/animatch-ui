@@ -9,13 +9,50 @@ import '../../../shared/widgets/app_bottom_nav.dart';
 import '../domain/match_item.dart';
 import '../providers/match_provider.dart';
 
+/// Route entry point: takes only the match id, fetches the match fresh via
+/// `matchDetailProvider` (same as match-detail). This keeps `status` accurate —
+/// the chat-token endpoint is server-gated on a confirmed match — and recovers
+/// the screen on a push-tap / deep-link with no in-memory match.
 class ChatScreen extends ConsumerWidget {
-  const ChatScreen({super.key, required this.match});
+  const ChatScreen({super.key, required this.matchId});
+
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final matchAsync = ref.watch(matchDetailProvider(matchId));
+
+    return matchAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        bottomNavigationBar: const AppBottomNav(),
+        body: _ErrorState(
+          onRetry: () => ref.invalidate(matchDetailProvider(matchId)),
+        ),
+      ),
+      data: (match) => _ChatScreenView(match: match),
+    );
+  }
+}
+
+class _ChatScreenView extends ConsumerWidget {
+  const _ChatScreenView({required this.match});
 
   final MatchItem match;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (match.status != MatchStatus.confirmado) {
+      return Scaffold(
+        appBar: _MatchAppBar(match: match),
+        bottomNavigationBar: const AppBottomNav(),
+        body: const _NotConfirmedState(),
+      );
+    }
+
     final channelAsync = ref.watch(chatChannelProvider(match.id));
 
     return Scaffold(
@@ -27,6 +64,41 @@ class ChatScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(chatChannelProvider(match.id)),
         ),
         data: (channel) => _ChatBody(match: match, channel: channel),
+      ),
+    );
+  }
+}
+
+class _NotConfirmedState extends StatelessWidget {
+  const _NotConfirmedState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_clock_rounded,
+                size: 56, color: AppColors.muted.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
+            Text(
+              'Chat ainda não disponível',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'O chat abre quando o outro criador confirmar o match.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -14,7 +14,6 @@ import '../../features/herd/ui/add_animal_screen.dart';
 import '../../features/herd/ui/edit_animal_screen.dart';
 import '../../features/herd/ui/herd_screen.dart';
 import '../../features/herd/ui/my_animal_detail_screen.dart';
-import '../../features/matches/domain/match_item.dart';
 import '../../features/matches/ui/chat_screen.dart';
 import '../../features/matches/ui/match_detail_screen.dart';
 import '../../features/matches/ui/matches_screen.dart';
@@ -36,12 +35,18 @@ abstract final class AppRoutes {
   static const animalDetail = '/animal/:animalId';
   static String animalDetailPath(String animalId) =>
       '/animal/${Uri.encodeComponent(animalId)}';
-  static const matchAnimalDetail = '/matches/animal/:animalId';
-  static String matchAnimalDetailPath(String animalId) =>
-      '/matches/animal/${Uri.encodeComponent(animalId)}';
   static const matches = '/matches';
-  static const matchDetail = '/matches/detail';
-  static const chat = '/matches/chat';
+  static const matchDetail = '/matches/:matchId';
+  static String matchDetailPath(String matchId) =>
+      '/matches/${Uri.encodeComponent(matchId)}';
+  static const matchChat = '/matches/:matchId/chat';
+  static String matchChatPath(String matchId) =>
+      '/matches/${Uri.encodeComponent(matchId)}/chat';
+  // `side` is 'yours' | 'theirs' — the other breeder's animal can't be fetched
+  // by its own id anymore (owner-only), so it's recovered from the match.
+  static const matchAnimalDetail = '/matches/:matchId/animal/:side';
+  static String matchAnimalDetailPath(String matchId, String side) =>
+      '/matches/${Uri.encodeComponent(matchId)}/animal/$side';
   static const herd = '/rebanho';
   static const addAnimal = '/rebanho/novo';
   static const myAnimalDetail = '/rebanho/animal/:animalId';
@@ -58,9 +63,17 @@ abstract final class AppRoutes {
 
 void _handleNotificationTap(RemoteMessage message, GoRouter router) {
   final type = message.data['type'] as String?;
-  if (type == 'match_confirmed' || type == 'new_message') {
+  if (type != 'match_confirmed' && type != 'new_message') return;
+
+  // Deep-link straight to the match when the payload carries its id; the
+  // detail/chat screens fetch it fresh, so no in-memory match is needed.
+  final matchId = message.data['matchId'] as String?;
+  if (matchId != null && matchId.isNotEmpty) {
     router.go(AppRoutes.matches);
+    router.push(AppRoutes.matchDetailPath(matchId));
+    return;
   }
+  router.go(AppRoutes.matches);
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -123,33 +136,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           animal: state.extra as AnimalDetailData?,
         ),
       ),
+      // Match routes are keyed off the match id and load fresh from
+      // GET /matches/:id (see matchDetailProvider), so a deep link /
+      // notification tap / OS state restoration with no `extra` recovers
+      // cleanly instead of crashing.
       GoRoute(
         path: AppRoutes.matchAnimalDetail,
-        builder: (_, state) => AnimalDetailLoader(
-          animalId: state.pathParameters['animalId']!,
+        builder: (_, state) => MatchAnimalDetailLoader(
+          matchId: state.pathParameters['matchId']!,
+          side: state.pathParameters['side']!,
           animal: state.extra as AnimalDetailData?,
-          showCtas: false,
         ),
       ),
-      // No backend endpoint exists to fetch a single match by id (only
-      // GET /matches?animalId=X, a list) — see H-6 in
-      // docs/production-review.md. Until one exists, redirect to a safe
-      // screen instead of crashing when `extra` is missing (deep link,
-      // notification tap, OS state restoration).
+      GoRoute(
+        path: AppRoutes.matchChat,
+        builder: (_, state) => ChatScreen(
+          matchId: state.pathParameters['matchId']!,
+        ),
+      ),
       GoRoute(
         path: AppRoutes.matchDetail,
-        redirect: (context, state) =>
-            state.extra == null ? AppRoutes.matches : null,
         builder: (_, state) => MatchDetailScreen(
-          match: state.extra! as MatchItem,
-        ),
-      ),
-      GoRoute(
-        path: AppRoutes.chat,
-        redirect: (context, state) =>
-            state.extra == null ? AppRoutes.matches : null,
-        builder: (_, state) => ChatScreen(
-          match: state.extra! as MatchItem,
+          matchId: state.pathParameters['matchId']!,
         ),
       ),
       ShellRoute(
@@ -180,18 +188,20 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 
   if (!kIsWeb) {
+    final notificationService = ref.read(notificationServiceProvider);
+
     // Handle notification tap when app was terminated (cold start).
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
+    notificationService.getInitialMessage().then((message) {
       if (message != null) _handleNotificationTap(message, router);
     });
 
     // Handle notification tap when app was in background.
-    final msgSub = FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    final msgSub = notificationService.onMessageOpenedApp.listen((message) {
       _handleNotificationTap(message, router);
     });
 
     // Handle tap on a local notification shown while app was in foreground.
-    final tapSub = ref.read(notificationServiceProvider).onLocalTap.listen((route) {
+    final tapSub = notificationService.onLocalTap.listen((route) {
       if (route != null) router.go(route);
     });
 

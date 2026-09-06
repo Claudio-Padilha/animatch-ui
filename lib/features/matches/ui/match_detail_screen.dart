@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/domain/animal_detail_data.dart';
+import '../../../shared/screens/animal_detail_screen.dart';
 import '../domain/match_item.dart';
 import '../providers/match_provider.dart';
 
@@ -47,13 +48,84 @@ Widget _animalPhoto(String path, {required double size, String species = 'cattle
   return _photoPlaceholder(size, species: species);
 }
 
+/// Route entry point: takes only the match id and always fetches the match
+/// fresh from `GET /matches/:id` (`matchDetailProvider`). `status` and breeder
+/// contact go stale the moment the other party acts, and this same path
+/// recovers the screen on a push-tap / deep-link / OS restoration.
 class MatchDetailScreen extends ConsumerWidget {
-  const MatchDetailScreen({super.key, required this.match});
+  const MatchDetailScreen({super.key, required this.matchId});
+
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final matchAsync = ref.watch(matchDetailProvider(matchId));
+    return matchAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: _LoadErrorState(
+          onRetry: () => ref.invalidate(matchDetailProvider(matchId)),
+        ),
+      ),
+      data: (match) => _MatchDetailView(match: match),
+    );
+  }
+}
+
+/// Route entry for `/matches/:matchId/animal/:side` — resolves one side of a
+/// match (`yours` / `theirs`) from `matchDetailProvider`. `GET /animals/:id` is
+/// owner-only now, so the other breeder's animal is only reachable this way on
+/// a cold deep-link. `extra` (an [AnimalDetailData]) is the instant-paint path.
+class MatchAnimalDetailLoader extends ConsumerWidget {
+  const MatchAnimalDetailLoader({
+    super.key,
+    required this.matchId,
+    required this.side,
+    this.animal,
+  });
+
+  final String matchId;
+  final String side;
+  final AnimalDetailData? animal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (animal != null) {
+      return AnimalDetailScreen(animal: animal!, showCtas: false);
+    }
+
+    final matchAsync = ref.watch(matchDetailProvider(matchId));
+    return matchAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: _LoadErrorState(
+          onRetry: () => ref.invalidate(matchDetailProvider(matchId)),
+        ),
+      ),
+      data: (match) {
+        final a = side == 'yours' ? match.yourAnimal : match.theirAnimal;
+        return AnimalDetailScreen(
+          animal: AnimalDetailData.fromMatchAnimal(a),
+          showCtas: false,
+        );
+      },
+    );
+  }
+}
+
+class _MatchDetailView extends StatelessWidget {
+  const _MatchDetailView({required this.match});
 
   final MatchItem match;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -92,13 +164,13 @@ class _AnimalPairWidget extends StatelessWidget {
 
   final MatchItem match;
 
-  void _openDetail(BuildContext context, MatchAnimal animal) {
-    // id should always be present for a real match's animal — guard defensively
-    // rather than push a route with an empty path segment.
-    final id = animal.id;
-    if (id == null) return;
+  void _openDetail(BuildContext context, String side, MatchAnimal animal) {
+    // Keyed off the match id + side rather than the animal id: `GET /animals/:id`
+    // is owner-only now, so the other breeder's animal can only be recovered
+    // (on deep-link / restoration) via `GET /matches/:id`. `extra` stays as the
+    // instant-paint fast path when we're already on this screen.
     context.push(
-      AppRoutes.matchAnimalDetailPath(id),
+      AppRoutes.matchAnimalDetailPath(match.id, side),
       extra: AnimalDetailData.fromMatchAnimal(animal),
     );
   }
@@ -111,7 +183,7 @@ class _AnimalPairWidget extends StatelessWidget {
       children: [
         _AnimalPhotoWithName(
           animal: match.yourAnimal,
-          onTap: () => _openDetail(context, match.yourAnimal),
+          onTap: () => _openDetail(context, 'yours', match.yourAnimal),
         ),
         Padding(
           padding: const EdgeInsets.only(top: 42),
@@ -128,7 +200,7 @@ class _AnimalPairWidget extends StatelessWidget {
         ),
         _AnimalPhotoWithName(
           animal: match.theirAnimal,
-          onTap: () => _openDetail(context, match.theirAnimal),
+          onTap: () => _openDetail(context, 'theirs', match.theirAnimal),
         ),
       ],
     );
@@ -347,6 +419,14 @@ class _ContactCard extends StatelessWidget {
           icon: Icons.person_outline_rounded,
           text: contact.breederName,
         ),
+        if (contact.phone.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _ContactRow(
+            icon: Icons.chat_outlined,
+            text: contact.phone,
+            onTap: () => _launch('https://wa.me/${_digits(contact.phone)}'),
+          ),
+        ],
         if (contact.email != null) ...[
           const SizedBox(height: 12),
           _ContactRow(
@@ -358,6 +438,8 @@ class _ContactCard extends StatelessWidget {
       ],
     );
   }
+
+  static String _digits(String phone) => phone.replaceAll(RegExp(r'\D'), '');
 
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
@@ -406,10 +488,28 @@ class _ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Chat is server-gated on a confirmed match (the token endpoint 409s
+    // otherwise). With `status` now always fresh, gate the entry point too.
+    if (match.status != MatchStatus.confirmado) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF9C3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          'O chat abre quando o outro criador confirmar o match.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFFB45309)),
+        ),
+      );
+    }
+
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        onPressed: () => context.push(AppRoutes.chat, extra: match),
+        onPressed: () => context.push(AppRoutes.matchChatPath(match.id)),
         icon: const Icon(Icons.chat_rounded, size: 20),
         label: const Text('Chat'),
         style: FilledButton.styleFrom(
@@ -460,7 +560,17 @@ class _UnmatchButton extends ConsumerWidget {
         .read(deleteMatchProvider.notifier)
         .deleteMatch(match.id, animalId: animalId);
 
-    if (context.mounted) context.go(AppRoutes.matches);
+    if (!context.mounted) return;
+    // Only navigate away if the DELETE actually succeeded — otherwise the match
+    // may still exist server-side and silently bouncing to the list hides that
+    // (mirrors edit_animal_screen.dart's delete flow). Fixes K-3.
+    if (ref.read(deleteMatchProvider) is AsyncError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao cancelar o match. Tente novamente.')),
+      );
+      return;
+    }
+    context.go(AppRoutes.matches);
   }
 
   @override
@@ -482,6 +592,51 @@ class _UnmatchButton extends ConsumerWidget {
                 color: Colors.red.shade400,
               ),
             ),
+    );
+  }
+}
+
+// ─── Load error state ─────────────────────────────────────────────────────────
+
+class _LoadErrorState extends StatelessWidget {
+  const _LoadErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded,
+                size: 56, color: AppColors.muted.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
+            Text(
+              'Não foi possível carregar o match',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Verifique sua conexão e tente novamente.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.muted),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

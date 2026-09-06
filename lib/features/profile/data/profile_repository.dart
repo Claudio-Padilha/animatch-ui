@@ -10,11 +10,6 @@ class ProfileRepository {
 
   final Dio _dio;
 
-  Future<Breeder> getBreeder(String id) async {
-    final response = await _dio.get<Map<String, dynamic>>('/breeders/$id');
-    return Breeder.fromJson(response.data!);
-  }
-
   Future<List<Association>> getAssociations() async {
     final response = await _dio.get<List<dynamic>>('/associations');
     return (response.data as List)
@@ -52,13 +47,16 @@ class ProfileRepository {
     return Breeder.fromJson(response.data!);
   }
 
+  /// `associations`: pass a list to **replace** the breeder's whole set
+  /// (`[]` clears it); pass `null` to leave it untouched (so a name/phone edit
+  /// doesn't disturb associations). An unknown `code` → 422.
   Future<Breeder> updateProfile({
     required String breederId,
     required String name,
     String? phone,
     String? farmName,
-    List<BreederAssociation> associations = const [],
     String? pictureUrl,
+    List<BreederAssociation>? associations,
     String? directions,
     String? zipCode,
     String? city,
@@ -72,7 +70,7 @@ class ProfileRepository {
         'pictureUrl': ?pictureUrl,
         if (phone != null && phone.isNotEmpty) 'phone': phone,
         if (farmName != null && farmName.isNotEmpty) 'propertyName': farmName,
-        if (associations.isNotEmpty)
+        if (associations != null)
           'associations': associations.map((a) => a.toJson()).toList(),
         if (directions != null && directions.isNotEmpty ||
             zipCode != null && zipCode.isNotEmpty ||

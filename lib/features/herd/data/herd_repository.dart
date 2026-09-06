@@ -7,11 +7,10 @@ class HerdRepository {
 
   final Dio _dio;
 
-  Future<List<HerdAnimal>> getAnimals(String breederId) async {
-    final response = await _dio.get<List<dynamic>>(
-      '/animals',
-      queryParameters: {'breederId': breederId},
-    );
+  /// Returns the authenticated breeder's own herd — the backend derives the
+  /// owner from the token, so no `breederId` filter is sent.
+  Future<List<HerdAnimal>> getAnimals() async {
+    final response = await _dio.get<List<dynamic>>('/animals');
     return (response.data as List)
         .map((e) => HerdAnimal.fromJson(e as Map<String, dynamic>))
         .toList();

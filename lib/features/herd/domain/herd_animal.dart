@@ -77,10 +77,15 @@ abstract class HerdAnimal with _$HerdAnimal {
           .map((e) => e as String)
           .toList(),
       age: (json['age'] as num?)?.toInt(),
-      registration: json['registration_number'] as String?,
-      location: address != null
-          ? '${address['city']}, ${address['state']}'
-          : null,
+      registration: (json['registrationNumber'] ?? json['registration_number'])
+          as String?,
+      // city/zipCode/directions come back null on non-owner views of
+      // free-tier animals — compose from whatever parts are present so the
+      // label degrades to "state only" instead of rendering "null, SP".
+      location: _locationLabel(
+        address?['city'] as String?,
+        address?['state'] as String?,
+      ),
       city: address?['city'] as String?,
       state: address?['state'] as String?,
       zipCode: address?['zipCode'] as String?,
@@ -89,6 +94,11 @@ abstract class HerdAnimal with _$HerdAnimal {
       geneticIndices:
           indicesJson != null ? GeneticIndices.fromJson(indicesJson) : null,
     );
+  }
+
+  static String? _locationLabel(String? city, String? state) {
+    final parts = [city, state].where((s) => s != null && s.isNotEmpty).toList();
+    return parts.isEmpty ? null : parts.join(', ');
   }
 
   static String _breedLabel(String apiValue) {

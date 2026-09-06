@@ -64,8 +64,8 @@ class ProfileNotifier extends Notifier<BreederProfile> {
     required String name,
     String? phone,
     String? farmName,
-    List<BreederAssociation> associations = const [],
     String? pictureUrl,
+    List<BreederAssociation>? associations,
     String? directions,
     String? zipCode,
     String? city,
@@ -77,8 +77,8 @@ class ProfileNotifier extends Notifier<BreederProfile> {
           name: name,
           phone: phone,
           farmName: farmName,
-          associations: associations,
           pictureUrl: pictureUrl,
+          associations: associations,
           directions: directions,
           zipCode: zipCode,
           city: city,
@@ -107,9 +107,3 @@ final breederStatisticsProvider =
 final associationsProvider = FutureProvider<List<Association>>(
   (ref) => ref.read(profileRepositoryProvider).getAssociations(),
 );
-
-final currentBreederProvider = FutureProvider.autoDispose<Breeder>((ref) async {
-  final id = ref.read(authNotifierProvider)?.id;
-  if (id == null) throw StateError('Not logged in');
-  return ref.read(profileRepositoryProvider).getBreeder(id);
-});

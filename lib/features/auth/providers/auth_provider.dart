@@ -45,10 +45,24 @@ class AuthNotifier extends Notifier<Breeder?> {
     if (breeder != null) state = breeder;
   }
 
+  // Re-syncs the current breeder's profile with the backend. No-op if
+  // logged out or if the refresh fails — never clears an existing session.
+  Future<void> refreshBreeder() async {
+    if (state == null) return;
+    final breeder = await _repository.refreshBreeder();
+    if (breeder != null) state = breeder;
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     state = null;
   }
+
+  /// Drops the in-memory session without the Auth0 web-logout round-trip.
+  /// Called by the network layer when a request 401s and a silent refresh
+  /// fails — the stored credentials are cleared there. The router reacts to
+  /// `state == null` by redirecting to login.
+  void clearSession() => state = null;
 }
 
 final authNotifierProvider =

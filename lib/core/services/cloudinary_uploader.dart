@@ -6,9 +6,11 @@ import 'package:image_picker/image_picker.dart';
 import '../network/api_client.dart';
 
 class CloudinaryUploader {
-  const CloudinaryUploader(this._dio);
+  CloudinaryUploader(this._dio, {ImagePicker? imagePicker})
+      : _imagePicker = imagePicker ?? ImagePicker();
 
   final Dio _dio; // app's authed Dio — used only for the signature request
+  final ImagePicker _imagePicker;
   static final _cdnDio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 10),
@@ -27,7 +29,7 @@ class CloudinaryUploader {
     String folder = 'animals',
     ImageSource source = ImageSource.gallery,
   }) async {
-    final picked = await ImagePicker().pickImage(
+    final picked = await _imagePicker.pickImage(
       source: source,
       imageQuality: 80,
     );

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/app_error_alert.dart';
+import 'providers/onboarding_provider.dart';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -53,16 +55,16 @@ const _slides = [
 // Screen
 // ---------------------------------------------------------------------------
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key, this.errorMessage});
 
   final String? errorMessage;
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
 
@@ -98,9 +100,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  // TODO: write Hive 'hasSeenOnboarding' flag before navigating
-  void _finish() => context.push(AppRoutes.register);
-  void _goToLogin() => context.push(AppRoutes.login);
+  void _finish() {
+    ref.read(hasSeenOnboardingProvider.notifier).markSeen();
+    context.push(AppRoutes.register);
+  }
+
+  void _goToLogin() {
+    ref.read(hasSeenOnboardingProvider.notifier).markSeen();
+    context.push(AppRoutes.login);
+  }
 
   @override
   Widget build(BuildContext context) {

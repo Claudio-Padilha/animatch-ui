@@ -11,6 +11,7 @@ import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/domain/breeder.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/onboarding/providers/onboarding_provider.dart';
 
 class AnimatchApp extends ConsumerStatefulWidget {
   const AnimatchApp({super.key});
@@ -19,28 +20,48 @@ class AnimatchApp extends ConsumerStatefulWidget {
   ConsumerState<AnimatchApp> createState() => _AnimatchAppState();
 }
 
-class _AnimatchAppState extends ConsumerState<AnimatchApp> {
+class _AnimatchAppState extends ConsumerState<AnimatchApp>
+    with WidgetsBindingObserver {
   StreamSubscription<String>? _tokenRefreshSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (!kIsWeb) {
       ref.read(notificationServiceProvider).init();
-      _tryRestoreSession();
-    } else {
-      ref.read(authInitializedProvider.notifier).setInitialized();
     }
+    _initAuthAndOnboarding();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _tokenRefreshSub?.cancel();
     super.dispose();
   }
 
-  Future<void> _tryRestoreSession() async {
-    await ref.read(authNotifierProvider.notifier).restoreSession();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Picks up server-side profile changes (e.g. an admin revoking
+    // verification) that a stale in-memory Breeder wouldn't otherwise
+    // reflect until the next full restart.
+    if (state == AppLifecycleState.resumed) {
+      ref.read(authNotifierProvider.notifier).refreshBreeder();
+    }
+  }
+
+  Future<void> _initAuthAndOnboarding() async {
+    final onboardingLoaded =
+        ref.read(hasSeenOnboardingProvider.notifier).load();
+    if (kIsWeb) {
+      await onboardingLoaded;
+    } else {
+      await Future.wait([
+        ref.read(authNotifierProvider.notifier).restoreSession(),
+        onboardingLoaded,
+      ]);
+    }
     ref.read(authInitializedProvider.notifier).setInitialized();
   }
 
@@ -48,7 +69,7 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
   Widget build(BuildContext context) {
     ref.listen<Breeder?>(authNotifierProvider, (prev, next) {
       if (next != null && prev == null) _onLogin();
-      if (next == null && prev != null) _onLogout(prev);
+      if (next == null && prev != null) _onLogout();
     });
 
     return MaterialApp.router(
@@ -69,7 +90,6 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
   Future<void> _onLogin() async {
     if (kIsWeb) return;
     try {
-      final breeder = ref.read(authNotifierProvider)!;
       final notificationService = ref.read(notificationServiceProvider);
       final deviceTokenService = ref.read(deviceTokenServiceProvider);
 
@@ -84,9 +104,9 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
       }
 
       if (token != null) {
-        await deviceTokenService.register(token, breederId: breeder.id);
+        await deviceTokenService.register(token);
         if (kDebugMode) {
-          debugPrint('[FCM] token registered with backend for breederId=${breeder.id}');
+          debugPrint('[FCM] token registered with backend');
         }
       } else {
         if (kDebugMode) {
@@ -99,7 +119,7 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
         if (kDebugMode) {
           debugPrint('[FCM] token refreshed, re-registering...');
         }
-        deviceTokenService.register(newToken, breederId: breeder.id);
+        deviceTokenService.register(newToken);
       });
     } catch (e) {
       if (kDebugMode) {
@@ -108,14 +128,14 @@ class _AnimatchAppState extends ConsumerState<AnimatchApp> {
     }
   }
 
-  Future<void> _onLogout(Breeder breeder) async {
+  Future<void> _onLogout() async {
     if (kIsWeb) return;
     _tokenRefreshSub?.cancel();
     _tokenRefreshSub = null;
     try {
       final token = await ref.read(notificationServiceProvider).getToken();
       if (token != null) {
-        await ref.read(deviceTokenServiceProvider).unregister(token, breederId: breeder.id);
+        await ref.read(deviceTokenServiceProvider).unregister(token);
         if (kDebugMode) {
           debugPrint('[FCM] token unregistered on logout.');
         }

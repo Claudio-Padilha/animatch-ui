@@ -7,8 +7,8 @@ import '../../../core/network/api_client.dart';
 import '../domain/breeder.dart';
 
 class AuthRepository {
-  AuthRepository(this._dio)
-      : _auth0 = Auth0(Auth0Config.domain, Auth0Config.clientId);
+  AuthRepository(this._dio, {Auth0? auth0})
+      : _auth0 = auth0 ?? Auth0(Auth0Config.domain, Auth0Config.clientId);
 
   final Dio _dio;
   final Auth0 _auth0;
@@ -78,10 +78,35 @@ class AuthRepository {
   // Restores a previous session silently using stored Auth0 credentials.
   // Returns null if no valid credentials exist (user needs to log in).
   Future<Breeder?> restoreSession() async {
+    final Credentials credentials;
     try {
-      final hasCredentials =
-          await _auth0.credentialsManager.hasValidCredentials();
-      if (!hasCredentials) return null;
+      credentials = await _auth0.credentialsManager.credentials();
+    } on CredentialsManagerException {
+      // No stored credentials, or refresh failed — genuinely logged out.
+      return null;
+    }
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/auth/sync-breeder',
+        data: <String, dynamic>{},
+      );
+      return Breeder.fromJson(response.data!);
+    } catch (_) {
+      // Auth0 credentials are valid, but the backend sync failed (offline,
+      // 5xx, unparseable response, ...). Don't force a re-login for what's
+      // a transient backend problem — fall back to a minimal profile built
+      // from the JWT, same as the "no backend account yet" path in login().
+      return _breederFromCredentials(credentials);
+    }
+  }
+
+  // Re-fetches the breeder profile for an already-logged-in user (e.g. on
+  // app foreground) so server-side changes — like an admin revoking
+  // verification — are picked up without requiring a full restart.
+  // Returns null on failure, leaving the caller's cached profile as-is
+  // rather than treating a transient error as a sign-out.
+  Future<Breeder?> refreshBreeder() async {
+    try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/auth/sync-breeder',
         data: <String, dynamic>{},

@@ -11,8 +11,8 @@ class BreederStatistics {
 
   factory BreederStatistics.fromJson(Map<String, dynamic> json) =>
       BreederStatistics(
-        activeAnimals: (json['active_animals'] as num).toInt(),
+        activeAnimals: (json['activeAnimals'] as num).toInt(),
         likes: (json['likes'] as num).toInt(),
-        breederMatches: (json['breeder_matches'] as num).toInt(),
+        breederMatches: (json['breederMatches'] as num).toInt(),
       );
 }

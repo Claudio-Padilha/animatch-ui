@@ -121,10 +121,38 @@ abstract class MatchItem with _$MatchItem {
       timeLabel: _timeLabelFrom(json['createdAt'] as String),
       yourAnimal: yours,
       theirAnimal: theirs,
+      // The list endpoint (`GET /matches?animalId=`) no longer embeds breeder
+      // contact info — only a display name. Full contact (email/phone, when the
+      // match is confirmed) comes from `fromDetailJson` / `GET /matches/:id`.
       contact: MatchContact(
         breederName: theirJson['breederName'] as String? ?? '',
         phone: '',
-        email: theirJson['breederEmail'] as String?,
+      ),
+    );
+  }
+
+  /// Parses `GET /matches/:id`, whose shape differs from the list endpoint:
+  /// `{ id, status, createdAt, yourAnimal, theirAnimal, theirBreeder }`, with
+  /// yours-vs-theirs already resolved server-side (no `animalId` needed) and
+  /// `theirBreeder.email`/`phone` present only when the match is confirmed.
+  ///
+  /// Static, not a `factory fromJson` — freezed only special-cases the latter
+  /// for codegen; see the note on the sibling `fromJson`.
+  static MatchItem fromDetailJson(Map<String, dynamic> json) {
+    final theirBreeder =
+        json['theirBreeder'] as Map<String, dynamic>? ?? const {};
+    return MatchItem(
+      id: json['id'] as String,
+      status: _statusFrom(json['status'] as String),
+      timeLabel: _timeLabelFrom(json['createdAt'] as String),
+      yourAnimal:
+          MatchAnimal.fromJson(json['yourAnimal'] as Map<String, dynamic>),
+      theirAnimal:
+          MatchAnimal.fromJson(json['theirAnimal'] as Map<String, dynamic>),
+      contact: MatchContact(
+        breederName: theirBreeder['name'] as String? ?? '',
+        phone: theirBreeder['phone'] as String? ?? '',
+        email: theirBreeder['email'] as String?,
       ),
     );
   }
