@@ -142,15 +142,17 @@ Unlike K-4 (which cleared at 430-480pt), **this screen needed a 500pt-wide test 
 
 ---
 
-## PROD-VERIFY-1 — `AssociationsPicker` uploads a document per association, but the backend doesn't store or review it yet
+## PROD-VERIFY-1 — `AssociationsPicker` uploads a document per association, but no one can review it yet
 
-**Status:** Open — client-only, needs backend contract
+**Status:** Partially fixed — backend persistence done 2026-09-07, reviewer visibility still open
 **File:** `lib/shared/widgets/associations_picker.dart`, `lib/shared/domain/breeder_association.dart`
 
-Each association row now lets the breeder attach a photo of their association membership card ("carteirinha") or an animal's Certificado de Registro Genealógico, as evidence backing the self-reported registration number — uploaded via the existing `CloudinaryUploader` (`folder: 'breeder-documents'`) the same way the profile selfie and animal photos already are. `BreederAssociation.toJson()` includes the resulting URL as `document_url` (mirroring the existing `registration_number` snake_case convention on the `/activate` and `/breeders/:id` payloads).
+Each association row lets the breeder attach a photo of their association membership card ("carteirinha") or an animal's Certificado de Registro Genealógico, as evidence backing the self-reported registration number — uploaded via the existing `CloudinaryUploader` (`folder: 'breeder-documents'`) the same way the profile selfie and animal photos already are. `BreederAssociation.toJson()` includes the resulting URL as `document_url` (mirroring the existing `registration_number` snake_case convention on the `/activate` and `/breeders/:id` payloads).
 
-**Gap:** the backend (separate Node repo) does not currently declare `document_url` on either endpoint's schema. Given `removeAdditional` behavior already observed for `associations` in [[K-6]], the key is almost certainly silently stripped today rather than erroring — the upload succeeds (real Cloudinary URL, shown in the UI), but it isn't persisted or visible to whoever reviews activation requests.
+**Resolution 2026-09-13 (backend, commit `be9c586`, merged 2026-09-07 — confirmed via the backend agent):** `document_url` (optional, `maxLength: 500`, snake_case) added to the shared `AssociationInput` schema used by both `PATCH /breeders/:id` and `PATCH /breeders/:breeder_id/activate`. Persisted via migration 0030 (`breeder_associations.document_url varchar(500)`, nullable). Both endpoints' responses return it back as `documentUrl` inside `associations[]`. Replace-set semantics match `registration_number`: omitting the key on a re-send clears the stored value. Covered by backend integration tests (persist + round-trip + clear-on-omit). The upload → persist → round-trip path is confirmed working end-to-end.
+
+**Still open:** no reviewer-facing way to see an uploaded document. There is no admin/review route, queue, or tooling in the backend for surfacing pending breeders' `documentUrl` to a human reviewer — the only read path today is the breeder's own PATCH/activate response. The backend's own commit message says as much: "Storage only — reviewing/verifying the document is a separate flow, not built here." If Phase 1 verification review is manual, the interim workaround is direct DB/Cloudinary console access; a proper fix needs an admin-scoped list endpoint (backend agent is available to scope this out on request).
 
 **Also unverified:** the "membership card" framing was checked directly only for ABCCMM (a photo ID card, per `abccmm.org.br`); the other four associations (ABCZ, ABQM, ABCCrioulo, ABCAngus) likely have an equivalent but weren't individually confirmed — worth a quick check before finalizing review-team guidance on what a valid attachment looks like.
 
-**Fix:** backend adds `document_url` (string, optional) to the `associations[]` item schema on both endpoints, persists it, and surfaces it to whatever tooling/queue the team uses to approve `pending` breeders. Flagged to the backend team the same way as [[K-6]] was.
+**Minor hardening, not blocking:** `document_url` validation is currently loose (`maxLength: 500` only — no URL-format check, no Cloudinary-domain allowlist), same permissiveness as the existing `pictureUrl` field. A malformed value is accepted (200), not rejected. Worth tightening (e.g. `format: 'uri'`) as a follow-up, not a launch blocker.
