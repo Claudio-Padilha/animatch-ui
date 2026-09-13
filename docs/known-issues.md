@@ -81,7 +81,7 @@ if (context.mounted) context.go(AppRoutes.matches);
 
 ## K-4 — `HerdScreen` overflows horizontally at standard iPhone width (390pt), and marginally even at 430pt
 
-**Status:** Open
+**Status:** Fixed 2026-09-12
 **Found by:** `flutter-test-engineer` while writing `test/herd/herd_screen_test.dart` (2026-08-16)
 **File:** `lib/features/herd/ui/herd_screen.dart`
 
@@ -99,11 +99,13 @@ Two separate `Row`s in this screen overflow horizontally at a 390×844 test surf
 
 **Methodology note (applies to K-5 too):** these `Row`s use `GoogleFonts`-styled `Text` (`app_theme.dart` uses `GoogleFonts.inter`/`.merriweather` throughout), and this repo had no global test config disabling `GoogleFonts.config.allowRuntimeFetching` — only `test/widget_test.dart` set it locally, in its own `setUpAll`. Every other widget test (including the ones that found K-4) was rendering text with whatever `google_fonts` falls back to when a real network fetch isn't available in this sandboxed test environment (observed as `family: Roboto` in the failure output), not the real Merriweather/Inter used in production — so pixel-level overflow amounts measured here may not match a real device exactly. Added `test/flutter_test_config.dart` (repo-wide, auto-picked-up by the test runner) to make this deterministic across every test file going forward, and re-confirmed K-4's overflows are **not** an artifact of the fetch race — they reproduce identically with runtime fetching disabled. The underlying "unconstrained `Row`, text sized off whatever font actually loads" shape is still worth fixing regardless of which exact font is in play.
 
+**Resolution 2026-09-12:** fixed as suggested above — `_QuotaBar`'s count `Text` wrapped in `Expanded` with `overflow: TextOverflow.ellipsis`; `_AvailabilityChip` wrapped in `Flexible` at its call site (`herd_screen.dart:334`) and given its own `overflow: TextOverflow.ellipsis, maxLines: 1`; `_StatusRow`'s label `Text` in `my_animal_detail_screen.dart` wrapped in `Expanded`, mirroring the sibling `_InfoRow`'s existing pattern in the same file. Verified via an ad-hoc diagnostic widget test rendering both screens at 390×844 and 430×932 with `tester.takeException()` asserted `null` (no `RenderFlex overflowed`) before deleting the scratch test. The three existing test files' viewports (previously widened to 480×1200 / 480×1400 to route around this) were shrunk back to 390×844 so they now serve as regression guards against the overflow recurring, and the full suite (342 tests) plus `flutter analyze` still pass. Not yet verified on a real device/simulator per the original fix note — still recommended before shipping.
+
 ---
 
 ## K-5 — `LoginScreen` (and likely `RegisterScreen`) overflow horizontally well past 480pt, not just at standard iPhone width
 
-**Status:** Open
+**Status:** Fixed 2026-09-12
 **Found by:** `flutter-test-engineer` while writing `test/auth/login_screen_test.dart` (2026-08-16)
 **File:** `lib/features/auth/ui/login_screen.dart`
 
@@ -117,6 +119,8 @@ Unlike K-4 (which cleared at 430-480pt), **this screen needed a 500pt-wide test 
 **Impact:** this is the **login screen** — the first thing a returning user sees, on every session start until `authInitializedProvider` settles them elsewhere. An overflow this size isn't a subtle edge case; it's plausibly visible on real devices as clipped/overlapping content on the app's most-trafficked screen.
 
 **Fix:** give `AnimatchLogo` a `Flexible`/`Expanded` wrapper around its `Text` (with `overflow: TextOverflow.ellipsis` or a `FittedBox`) so a large `size` doesn't force unbounded width, or reconsider whether `size: 44` on the login screen is intentional at all (every other call site in the codebase should be checked). Wrap the "Criar conta"/"Entrar" link row's leading `Text` in `Flexible` so it wraps or ellipses instead of overflowing. Check `register_screen.dart`'s equivalent row while in there. Needs a real device/simulator check once fixed — this was found and sized via `flutter test`'s font-fallback rendering (see the methodology note under K-4), so exact pixel counts may differ with the real production fonts loaded, but the underlying unconstrained-layout shape is the same class of bug either way.
+
+**Resolution 2026-09-12:** fixed as suggested above, without changing `size: 44` on the login screen (left as-is — a deliberate visual choice, not touched). `AnimatchLogo`'s `Text` wrapped in `Flexible` with `overflow: TextOverflow.ellipsis, maxLines: 1`, keeping the existing `mainAxisSize: MainAxisSize.min` on its `Row` (a `Flexible` child still gets properly bounded by the parent's incoming width constraint even under `mainAxisSize: min`). Both link rows' leading `Text` (`login_screen.dart`'s "Não tem uma conta?" and `register_screen.dart`'s "Já tem uma conta?") wrapped in `Flexible` with `overflow: TextOverflow.ellipsis`. Verified via the same ad-hoc diagnostic approach as K-4, at 390×844 and 430×932 — no `RenderFlex overflowed`. `login_screen_test.dart`'s viewport (previously widened to 500×900) and `register_screen_test.dart`'s (previously 410×844) both shrunk back to 390×844. Full suite (342 tests) plus `flutter analyze` pass. Not yet verified on a real device/simulator — still recommended before shipping.
 
 ---
 

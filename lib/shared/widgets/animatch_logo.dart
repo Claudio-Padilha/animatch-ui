@@ -19,12 +19,16 @@ class AnimatchLogo extends StatelessWidget {
           height: size,
         ),
         const SizedBox(width: 8),
-        Text(
-          'Animatch',
-          style: GoogleFonts.merriweather(
-            fontSize: size,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
+        Flexible(
+          child: Text(
+            'Animatch',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: GoogleFonts.merriweather(
+              fontSize: size,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
           ),
         ),
       ],

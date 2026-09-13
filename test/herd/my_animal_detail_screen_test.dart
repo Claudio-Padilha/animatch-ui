@@ -30,7 +30,7 @@ Future<ProviderContainer> _pumpScreen(
   WidgetTester tester, {
   FakeHerdRepository? herdRepository,
 }) async {
-  tester.view.physicalSize = const Size(480, 1400);
+  tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -74,7 +74,7 @@ Future<ProviderContainer> _pumpScreen(
 void main() {
   group('MyAnimalDetailScreen', () {
     testWidgets('loading state (delegated to herdProvider)', (tester) async {
-      tester.view.physicalSize = const Size(480, 1400);
+      tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
