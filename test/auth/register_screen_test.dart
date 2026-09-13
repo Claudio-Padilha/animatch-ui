@@ -35,7 +35,7 @@ Future<GoRouter> _pumpRegisterScreen(
   WidgetTester tester, {
   required FakeAuthRepository repo,
 }) async {
-  tester.view.physicalSize = const Size(410, 844);
+  tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);

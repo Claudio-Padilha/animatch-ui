@@ -84,9 +84,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Já tem uma conta? ',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                Flexible(
+                  child: Text(
+                    'Já tem uma conta? ',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                  ),
                 ),
                 GestureDetector(
                   onTap: _isLoading ? null : () => context.go(AppRoutes.login),

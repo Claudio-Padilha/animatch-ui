@@ -199,7 +199,14 @@ class _QuotaBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$count / $limit animais', style: theme.textTheme.titleSmall),
+              Expanded(
+                child: Text(
+                  '$count / $limit animais',
+                  style: theme.textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
@@ -333,7 +340,7 @@ class _AnimalCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      _AvailabilityChip(available: animal.available),
+                      Flexible(child: _AvailabilityChip(available: animal.available)),
                     ],
                   ),
                 ],
@@ -474,6 +481,8 @@ class _AvailabilityChip extends StatelessWidget {
       ),
       child: Text(
         available ? 'Disponível' : 'Indisponível',
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,

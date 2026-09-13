@@ -87,9 +87,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Não tem uma conta? ',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                Flexible(
+                  child: Text(
+                    'Não tem uma conta? ',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                  ),
                 ),
                 GestureDetector(
                   onTap: _isLoading ? null : () => context.go(AppRoutes.register),

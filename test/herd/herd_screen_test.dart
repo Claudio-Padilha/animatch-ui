@@ -38,7 +38,7 @@ Future<ProviderContainer> _pumpHerdScreen(
   Breeder? breeder = _verifiedBreeder,
   FakeHerdRepository? herdRepository,
 }) async {
-  tester.view.physicalSize = const Size(480, 1200);
+  tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -102,7 +102,7 @@ void main() {
     });
 
     testWidgets('loading state', (tester) async {
-      tester.view.physicalSize = const Size(480, 1200);
+      tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);

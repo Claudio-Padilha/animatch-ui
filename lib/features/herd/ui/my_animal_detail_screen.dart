@@ -434,11 +434,13 @@ class _StatusRow extends StatelessWidget {
             color: color,
           ),
           const SizedBox(width: 8),
-          Text(
-            available
-                ? 'Disponível para matching'
-                : 'Indisponível para matching',
-            style: GoogleFonts.inter(fontSize: 14, color: color),
+          Expanded(
+            child: Text(
+              available
+                  ? 'Disponível para matching'
+                  : 'Indisponível para matching',
+              style: GoogleFonts.inter(fontSize: 14, color: color),
+            ),
           ),
         ],
       ),
