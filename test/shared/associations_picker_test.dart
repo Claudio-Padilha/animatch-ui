@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:animatch/core/services/cloudinary_uploader.dart';
 import 'package:animatch/features/profile/providers/profile_provider.dart';
 import 'package:animatch/shared/domain/association.dart';
 import 'package:animatch/shared/domain/breeder_association.dart';
 import 'package:animatch/shared/widgets/associations_picker.dart';
+
+import '../helpers/fakes.dart';
 
 const _allAssociations = [
   Association(code: 'ABCZ', name: 'ABCZ'),
@@ -17,11 +20,15 @@ Future<void> _pumpPicker(
   List<BreederAssociation> initialValue = const [],
   required ValueChanged<List<BreederAssociation>> onChanged,
   List<Association> available = _allAssociations,
+  CloudinaryUploader? cloudinaryUploader,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         associationsProvider.overrideWith((ref) async => available),
+        cloudinaryUploaderProvider.overrideWithValue(
+          cloudinaryUploader ?? FakeCloudinaryUploader(),
+        ),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -150,6 +157,87 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'document attachment: tapping "Anexar" opens the source chooser, '
+        'uploads via CloudinaryUploader, and shows a thumbnail',
+        (tester) async {
+      List<BreederAssociation>? lastChanged;
+      final uploader = FakeCloudinaryUploader(
+        result: 'https://cdn.example.com/carteirinha.jpg',
+      );
+      await _pumpPicker(
+        tester,
+        initialValue: const [BreederAssociation(code: 'ABCZ', name: 'ABCZ')],
+        onChanged: (v) => lastChanged = v,
+        cloudinaryUploader: uploader,
+      );
+
+      expect(find.text('Anexar carteirinha ou certificado'), findsOneWidget);
+
+      await tester.tap(find.text('Anexar carteirinha ou certificado'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tirar foto'), findsOneWidget);
+
+      await tester.tap(find.text('Tirar foto'));
+      await tester.pumpAndSettle();
+
+      expect(uploader.pickAndUploadCalls, 1);
+      expect(find.text('Documento anexado'), findsOneWidget);
+      expect(find.text('Anexar carteirinha ou certificado'), findsNothing);
+      expect(lastChanged!.single.documentUrl,
+          'https://cdn.example.com/carteirinha.jpg');
+    });
+
+    testWidgets(
+        'document attachment: upload failure shows an error SnackBar and '
+        'leaves documentUrl unset', (tester) async {
+      List<BreederAssociation>? lastChanged;
+      final uploader = FakeCloudinaryUploader(error: Exception('boom'));
+      await _pumpPicker(
+        tester,
+        initialValue: const [BreederAssociation(code: 'ABCZ', name: 'ABCZ')],
+        onChanged: (v) => lastChanged = v,
+        cloudinaryUploader: uploader,
+      );
+
+      await tester.tap(find.text('Anexar carteirinha ou certificado'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tirar foto'));
+      await tester.pumpAndSettle();
+
+      expect(uploader.pickAndUploadCalls, 1);
+      expect(find.textContaining('Erro ao enviar documento'), findsOneWidget);
+      expect(find.text('Anexar carteirinha ou certificado'), findsOneWidget);
+      expect(find.text('Documento anexado'), findsNothing);
+      expect(lastChanged, isNull);
+    });
+
+    testWidgets(
+        'document attachment: the delete button clears the document and '
+        'notifies onChanged', (tester) async {
+      List<BreederAssociation>? lastChanged;
+      await _pumpPicker(
+        tester,
+        initialValue: const [
+          BreederAssociation(
+            code: 'ABCZ',
+            name: 'ABCZ',
+            documentUrl: 'https://cdn.example.com/carteirinha.jpg',
+          ),
+        ],
+        onChanged: (v) => lastChanged = v,
+      );
+
+      expect(find.text('Documento anexado'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.delete_outline_rounded));
+      await tester.pump();
+
+      expect(find.text('Documento anexado'), findsNothing);
+      expect(find.text('Anexar carteirinha ou certificado'), findsOneWidget);
+      expect(lastChanged!.single.documentUrl, isNull);
     });
   });
 }

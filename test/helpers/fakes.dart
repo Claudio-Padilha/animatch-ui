@@ -378,11 +378,13 @@ class FakeMatchRepository extends MatchRepository {
 
 /// A [CloudinaryUploader] double that skips the real `ImagePicker`/network
 /// round trip — `pickAndUpload()` just returns [result] (or `null` to
-/// simulate the user cancelling the picker).
+/// simulate the user cancelling the picker), or throws [error] if set, to
+/// simulate an upload failure (network error, Cloudinary rejection, etc).
 class FakeCloudinaryUploader extends CloudinaryUploader {
-  FakeCloudinaryUploader({this.result}) : super(Dio());
+  FakeCloudinaryUploader({this.result, this.error}) : super(Dio());
 
   final String? result;
+  final Object? error;
   int pickAndUploadCalls = 0;
 
   @override
@@ -391,6 +393,7 @@ class FakeCloudinaryUploader extends CloudinaryUploader {
     ImageSource source = ImageSource.gallery,
   }) async {
     pickAndUploadCalls++;
+    if (error != null) throw error!;
     return result;
   }
 }

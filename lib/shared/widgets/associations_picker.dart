@@ -1,6 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../core/services/cloudinary_uploader.dart';
 import '../../core/theme/app_theme.dart';
 import '../../features/profile/providers/profile_provider.dart';
 import '../domain/association.dart';
@@ -33,6 +36,7 @@ class _AssociationsPickerState extends ConsumerState<AssociationsPicker> {
         code: a.code,
         name: a.name,
         initialText: a.registrationNumber ?? '',
+        documentUrl: a.documentUrl,
       ));
     }
   }
@@ -48,9 +52,62 @@ class _AssociationsPickerState extends ConsumerState<AssociationsPicker> {
                 registrationNumber: e.controller.text.trim().isEmpty
                     ? null
                     : e.controller.text.trim(),
+                documentUrl: e.documentUrl,
               ))
           .toList(),
     );
+  }
+
+  Future<ImageSource?> _showSourceChooser() => showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (_) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_rounded),
+                title: const Text('Tirar foto'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_rounded),
+                title: const Text('Escolher da galeria'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Future<void> _pickDocument(int index) async {
+    final source = await _showSourceChooser();
+    if (source == null) return;
+
+    setState(() => _entries[index].isUploadingDocument = true);
+    try {
+      final url = await ref
+          .read(cloudinaryUploaderProvider)
+          .pickAndUpload(folder: 'breeder-documents', source: source);
+      if (url != null) {
+        setState(() => _entries[index].documentUrl = url);
+        _notify();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao enviar documento: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _entries[index].isUploadingDocument = false);
+      }
+    }
+  }
+
+  void _removeDocument(int index) {
+    setState(() => _entries[index].documentUrl = null);
+    _notify();
   }
 
   Future<void> _addAssociation(List<Association> available) async {
@@ -109,8 +166,12 @@ class _AssociationsPickerState extends ConsumerState<AssociationsPicker> {
                 child: _AssociationRow(
                   code: entry.code,
                   controller: entry.controller,
+                  documentUrl: entry.documentUrl,
+                  isUploadingDocument: entry.isUploadingDocument,
                   onRemove: () => _remove(i),
                   onChanged: (_) => _notify(),
+                  onPickDocument: () => _pickDocument(i),
+                  onRemoveDocument: () => _removeDocument(i),
                 ),
               );
             }),
@@ -142,64 +203,166 @@ class _AssociationRow extends StatelessWidget {
   const _AssociationRow({
     required this.code,
     required this.controller,
+    required this.documentUrl,
+    required this.isUploadingDocument,
     required this.onRemove,
     required this.onChanged,
+    required this.onPickDocument,
+    required this.onRemoveDocument,
   });
 
   final String code;
   final TextEditingController controller;
+  final String? documentUrl;
+  final bool isUploadingDocument;
   final VoidCallback onRemove;
   final ValueChanged<String> onChanged;
+  final VoidCallback onPickDocument;
+  final VoidCallback onRemoveDocument;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Code chip
-        Container(
-          margin: const EdgeInsets.only(top: 14),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Code chip
+            Container(
+              margin: const EdgeInsets.only(top: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+              ),
+              child: Text(
+                code,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // Registration number field
+            Expanded(
+              child: TextFormField(
+                controller: controller,
+                onChanged: onChanged,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Campo obrigatório'
+                    : null,
+                decoration: InputDecoration(
+                  labelText: 'Nº de registro',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+
+            // Remove button
+            IconButton(
+              onPressed: onRemove,
+              icon: const Icon(Icons.close_rounded, size: 20),
+              color: Colors.grey.shade500,
+              tooltip: 'Remover',
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _DocumentAttachment(
+          documentUrl: documentUrl,
+          isUploading: isUploadingDocument,
+          onPick: onPickDocument,
+          onRemove: onRemoveDocument,
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Document attachment (carteirinha / CRG) ──────────────────────────────────
+
+/// Lets the breeder attach a photo of the association's membership card
+/// ("carteirinha") or an animal's Certificado de Registro Genealógico, as
+/// evidence backing the registration number typed above.
+class _DocumentAttachment extends StatelessWidget {
+  const _DocumentAttachment({
+    required this.documentUrl,
+    required this.isUploading,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  final String? documentUrl;
+  final bool isUploading;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isUploading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 4),
+        child: SizedBox(
+          height: 16,
+          width: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (documentUrl == null) {
+      return TextButton.icon(
+        onPressed: onPick,
+        icon: const Icon(Icons.attach_file_rounded, size: 16),
+        label: const Text('Anexar carteirinha ou certificado'),
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: CachedNetworkImage(
+            imageUrl: documentUrl!,
+            width: 40,
+            height: 40,
+            fit: BoxFit.cover,
           ),
+        ),
+        const SizedBox(width: 8),
+        const Expanded(
           child: Text(
-            code,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
+            'Documento anexado',
+            style: TextStyle(fontSize: 13, color: Colors.black87),
           ),
         ),
-        const SizedBox(width: 10),
-
-        // Registration number field
-        Expanded(
-          child: TextFormField(
-            controller: controller,
-            onChanged: onChanged,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Campo obrigatório' : null,
-            decoration: InputDecoration(
-              labelText: 'Nº de registro',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
-          ),
+        TextButton(
+          onPressed: onPick,
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+          child: const Text('Trocar'),
         ),
-        const SizedBox(width: 4),
-
-        // Remove button
         IconButton(
           onPressed: onRemove,
-          icon: const Icon(Icons.close_rounded, size: 20),
+          icon: const Icon(Icons.delete_outline_rounded, size: 18),
           color: Colors.grey.shade500,
-          tooltip: 'Remover',
+          tooltip: 'Remover documento',
+          visualDensity: VisualDensity.compact,
         ),
       ],
     );
@@ -252,10 +415,16 @@ class _AssociationPickSheet extends StatelessWidget {
 // ─── Internal entry ───────────────────────────────────────────────────────────
 
 class _Entry {
-  _Entry({required this.code, required this.name, String initialText = ''})
-      : controller = TextEditingController(text: initialText);
+  _Entry({
+    required this.code,
+    required this.name,
+    String initialText = '',
+    this.documentUrl,
+  }) : controller = TextEditingController(text: initialText);
 
   final String code;
   final String name;
   final TextEditingController controller;
+  String? documentUrl;
+  bool isUploadingDocument = false;
 }

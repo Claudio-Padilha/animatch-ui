@@ -135,3 +135,18 @@ Unlike K-4 (which cleared at 430-480pt), **this screen needed a 500pt-wide test 
 **Fix options:** (a) backend adds a dedicated associations endpoint (`PATCH /breeders/:id/associations` or accept the key on the main PATCH); then re-wire `updateProfile`. (b) Until then, make the picker in `EditProfileScreen` read-only / informational, or drop it from that screen and point users to re-verification. Decision pending — flagged to the backend team.
 
 **Resolution 2026-09-05:** the backend took option (a) — `PATCH /breeders/:id` now accepts `associations: [{ code, registration_number? }]` (replaces the whole set; `[]` clears; omit the key to leave untouched; unknown code → 422), and both `PATCH /breeders/:id` and `/activate` now return the `associations` array in the response. FE re-wired: `ProfileRepository.updateProfile` / `ProfileNotifier.updateProfile` take an optional `List<BreederAssociation>? associations` (null → key omitted). `EditProfileScreen` tracks an `_associationsDirty` flag set by the picker's `onChanged` and only passes the list when the picker was actually touched, so a name/phone-only edit doesn't disturb the set. Tests in `test/profile/profile_repository_test.dart` (null-omits / list-replaces / `[]`-clears) and `test/profile/edit_profile_screen_test.dart` (untouched picker → key omitted).
+
+---
+
+## PROD-VERIFY-1 — `AssociationsPicker` uploads a document per association, but the backend doesn't store or review it yet
+
+**Status:** Open — client-only, needs backend contract
+**File:** `lib/shared/widgets/associations_picker.dart`, `lib/shared/domain/breeder_association.dart`
+
+Each association row now lets the breeder attach a photo of their association membership card ("carteirinha") or an animal's Certificado de Registro Genealógico, as evidence backing the self-reported registration number — uploaded via the existing `CloudinaryUploader` (`folder: 'breeder-documents'`) the same way the profile selfie and animal photos already are. `BreederAssociation.toJson()` includes the resulting URL as `document_url` (mirroring the existing `registration_number` snake_case convention on the `/activate` and `/breeders/:id` payloads).
+
+**Gap:** the backend (separate Node repo) does not currently declare `document_url` on either endpoint's schema. Given `removeAdditional` behavior already observed for `associations` in [[K-6]], the key is almost certainly silently stripped today rather than erroring — the upload succeeds (real Cloudinary URL, shown in the UI), but it isn't persisted or visible to whoever reviews activation requests.
+
+**Also unverified:** the "membership card" framing was checked directly only for ABCCMM (a photo ID card, per `abccmm.org.br`); the other four associations (ABCZ, ABQM, ABCCrioulo, ABCAngus) likely have an equivalent but weren't individually confirmed — worth a quick check before finalizing review-team guidance on what a valid attachment looks like.
+
+**Fix:** backend adds `document_url` (string, optional) to the `associations[]` item schema on both endpoints, persists it, and surfaces it to whatever tooling/queue the team uses to approve `pending` breeders. Flagged to the backend team the same way as [[K-6]] was.

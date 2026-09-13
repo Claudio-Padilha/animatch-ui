@@ -30,6 +30,29 @@ void main() {
       expect(association.registrationNumber, 'REG123');
     });
 
+    test('round-trips documentUrl via the snake_case document_url key', () {
+      final association = BreederAssociation.fromJson({
+        'code': 'ABCZ',
+        'document_url': 'https://cdn.example.com/carteirinha.jpg',
+      });
+
+      expect(
+          association.documentUrl, 'https://cdn.example.com/carteirinha.jpg');
+      expect(association.toJson(), {
+        'code': 'ABCZ',
+        'document_url': 'https://cdn.example.com/carteirinha.jpg',
+      });
+    });
+
+    test('fromJson still tolerates a camelCase documentUrl key', () {
+      final association = BreederAssociation.fromJson({
+        'code': 'ABCZ',
+        'documentUrl': 'https://cdn.example.com/carteirinha.jpg',
+      });
+      expect(
+          association.documentUrl, 'https://cdn.example.com/carteirinha.jpg');
+    });
+
     test('name falls back to code when absent', () {
       final association = BreederAssociation.fromJson({'code': 'ABCZ'});
 
