@@ -64,6 +64,52 @@ void main() {
 
       expect(association.toJson(), {'code': 'ABCZ'});
     });
+
+    test('verificationStatus defaults to unsubmitted when absent', () {
+      final association = BreederAssociation.fromJson({'code': 'ABCZ'});
+
+      expect(association.verificationStatus,
+          AssociationVerificationStatus.unsubmitted);
+      expect(association.rejectionReason, isNull);
+    });
+
+    test('fromJson parses each verificationStatus value', () {
+      for (final entry in {
+        'pending': AssociationVerificationStatus.pending,
+        'approved': AssociationVerificationStatus.approved,
+        'rejected': AssociationVerificationStatus.rejected,
+      }.entries) {
+        final association = BreederAssociation.fromJson({
+          'code': 'ABCZ',
+          'verificationStatus': entry.key,
+        });
+        expect(association.verificationStatus, entry.value);
+      }
+    });
+
+    test('fromJson parses rejectionReason', () {
+      final association = BreederAssociation.fromJson({
+        'code': 'ABCZ',
+        'verificationStatus': 'rejected',
+        'rejectionReason': 'Foto ilegível',
+      });
+
+      expect(association.verificationStatus,
+          AssociationVerificationStatus.rejected);
+      expect(association.rejectionReason, 'Foto ilegível');
+    });
+
+    test(
+        'toJson never sends verificationStatus/rejectionReason — admin-only '
+        'fields', () {
+      final association = BreederAssociation.fromJson({
+        'code': 'ABCZ',
+        'verificationStatus': 'approved',
+        'rejectionReason': null,
+      });
+
+      expect(association.toJson(), {'code': 'ABCZ'});
+    });
   });
 
   group('Association.fromJson', () {

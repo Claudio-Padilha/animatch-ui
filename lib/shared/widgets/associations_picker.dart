@@ -37,6 +37,8 @@ class _AssociationsPickerState extends ConsumerState<AssociationsPicker> {
         name: a.name,
         initialText: a.registrationNumber ?? '',
         documentUrl: a.documentUrl,
+        verificationStatus: a.verificationStatus,
+        rejectionReason: a.rejectionReason,
       ));
     }
   }
@@ -53,6 +55,8 @@ class _AssociationsPickerState extends ConsumerState<AssociationsPicker> {
                     ? null
                     : e.controller.text.trim(),
                 documentUrl: e.documentUrl,
+                verificationStatus: e.verificationStatus,
+                rejectionReason: e.rejectionReason,
               ))
           .toList(),
     );
@@ -168,6 +172,8 @@ class _AssociationsPickerState extends ConsumerState<AssociationsPicker> {
                   controller: entry.controller,
                   documentUrl: entry.documentUrl,
                   isUploadingDocument: entry.isUploadingDocument,
+                  verificationStatus: entry.verificationStatus,
+                  rejectionReason: entry.rejectionReason,
                   onRemove: () => _remove(i),
                   onChanged: (_) => _notify(),
                   onPickDocument: () => _pickDocument(i),
@@ -205,6 +211,8 @@ class _AssociationRow extends StatelessWidget {
     required this.controller,
     required this.documentUrl,
     required this.isUploadingDocument,
+    required this.verificationStatus,
+    required this.rejectionReason,
     required this.onRemove,
     required this.onChanged,
     required this.onPickDocument,
@@ -215,6 +223,8 @@ class _AssociationRow extends StatelessWidget {
   final TextEditingController controller;
   final String? documentUrl;
   final bool isUploadingDocument;
+  final AssociationVerificationStatus verificationStatus;
+  final String? rejectionReason;
   final VoidCallback onRemove;
   final ValueChanged<String> onChanged;
   final VoidCallback onPickDocument;
@@ -283,6 +293,75 @@ class _AssociationRow extends StatelessWidget {
           isUploading: isUploadingDocument,
           onPick: onPickDocument,
           onRemove: onRemoveDocument,
+        ),
+        if (documentUrl != null &&
+            verificationStatus != AssociationVerificationStatus.unsubmitted) ...[
+          const SizedBox(height: 6),
+          _VerificationStatusBadge(
+            status: verificationStatus,
+            rejectionReason: rejectionReason,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─── Verification status badge ─────────────────────────────────────────────
+
+/// Shows the admin's review state of the attached document — "Em análise",
+/// "Aprovado", or "Rejeitado: `<motivo>`".
+class _VerificationStatusBadge extends StatelessWidget {
+  const _VerificationStatusBadge({
+    required this.status,
+    required this.rejectionReason,
+  });
+
+  final AssociationVerificationStatus status;
+  final String? rejectionReason;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (status) {
+      AssociationVerificationStatus.pending => (
+          'Documento em análise',
+          AppColors.secondary,
+        ),
+      AssociationVerificationStatus.approved => (
+          'Documento aprovado',
+          AppColors.primary,
+        ),
+      AssociationVerificationStatus.rejected => (
+          rejectionReason != null && rejectionReason!.isNotEmpty
+              ? 'Documento rejeitado: $rejectionReason'
+              : 'Documento rejeitado',
+          AppColors.error,
+        ),
+      AssociationVerificationStatus.unsubmitted => ('', Colors.transparent),
+    };
+    if (label.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      children: [
+        Icon(
+          switch (status) {
+            AssociationVerificationStatus.approved => Icons.check_circle,
+            AssociationVerificationStatus.rejected => Icons.cancel,
+            _ => Icons.hourglass_top_rounded,
+          },
+          size: 14,
+          color: color,
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
         ),
       ],
     );
@@ -420,6 +499,8 @@ class _Entry {
     required this.name,
     String initialText = '',
     this.documentUrl,
+    this.verificationStatus = AssociationVerificationStatus.unsubmitted,
+    this.rejectionReason,
   }) : controller = TextEditingController(text: initialText);
 
   final String code;
@@ -427,4 +508,9 @@ class _Entry {
   final TextEditingController controller;
   String? documentUrl;
   bool isUploadingDocument = false;
+
+  // Admin-review state, read-only from the picker's perspective — set by the
+  // server, never edited here.
+  final AssociationVerificationStatus verificationStatus;
+  final String? rejectionReason;
 }

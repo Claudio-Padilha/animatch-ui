@@ -239,5 +239,82 @@ void main() {
       expect(find.text('Anexar carteirinha ou certificado'), findsOneWidget);
       expect(lastChanged!.single.documentUrl, isNull);
     });
+
+    testWidgets(
+        'verification status: shows "em análise" for a pending document',
+        (tester) async {
+      await _pumpPicker(
+        tester,
+        initialValue: const [
+          BreederAssociation(
+            code: 'ABCZ',
+            name: 'ABCZ',
+            documentUrl: 'https://cdn.example.com/carteirinha.jpg',
+            verificationStatus: AssociationVerificationStatus.pending,
+          ),
+        ],
+        onChanged: (_) {},
+      );
+
+      expect(find.text('Documento em análise'), findsOneWidget);
+    });
+
+    testWidgets('verification status: shows "aprovado" for an approved document',
+        (tester) async {
+      await _pumpPicker(
+        tester,
+        initialValue: const [
+          BreederAssociation(
+            code: 'ABCZ',
+            name: 'ABCZ',
+            documentUrl: 'https://cdn.example.com/carteirinha.jpg',
+            verificationStatus: AssociationVerificationStatus.approved,
+          ),
+        ],
+        onChanged: (_) {},
+      );
+
+      expect(find.text('Documento aprovado'), findsOneWidget);
+    });
+
+    testWidgets(
+        'verification status: shows the rejection reason for a rejected '
+        'document', (tester) async {
+      await _pumpPicker(
+        tester,
+        initialValue: const [
+          BreederAssociation(
+            code: 'ABCZ',
+            name: 'ABCZ',
+            documentUrl: 'https://cdn.example.com/carteirinha.jpg',
+            verificationStatus: AssociationVerificationStatus.rejected,
+            rejectionReason: 'Foto ilegível',
+          ),
+        ],
+        onChanged: (_) {},
+      );
+
+      expect(find.text('Documento rejeitado: Foto ilegível'), findsOneWidget);
+    });
+
+    testWidgets(
+        'verification status: nothing shown for unsubmitted, even with a '
+        'document attached', (tester) async {
+      await _pumpPicker(
+        tester,
+        initialValue: const [
+          BreederAssociation(
+            code: 'ABCZ',
+            name: 'ABCZ',
+            documentUrl: 'https://cdn.example.com/carteirinha.jpg',
+          ),
+        ],
+        onChanged: (_) {},
+      );
+
+      expect(find.textContaining('Documento em análise'), findsNothing);
+      expect(find.textContaining('Documento aprovado'), findsNothing);
+      expect(find.textContaining('Documento rejeitado'), findsNothing);
+    });
   });
 }

@@ -85,6 +85,30 @@ void main() {
     });
   });
 
+  group('associationVerified', () {
+    test('defaults to false when absent from JSON', () {
+      final breeder = Breeder.fromJson(_json);
+      expect(breeder.associationVerified, isFalse);
+    });
+
+    test('parses true from JSON', () {
+      final breeder =
+          Breeder.fromJson({..._json, 'associationVerified': true});
+      expect(breeder.associationVerified, isTrue);
+    });
+
+    test('is independent of verifiedBreeder (profile activation)', () {
+      // Active profile, no approved association yet.
+      final breeder = Breeder.fromJson({
+        ..._json,
+        'profileStatus': 'active',
+        'associationVerified': false,
+      });
+      expect(breeder.verifiedBreeder, isTrue);
+      expect(breeder.associationVerified, isFalse);
+    });
+  });
+
   group('generated equality', () {
     test('two instances built with identical field values are equal', () {
       const a = Breeder(

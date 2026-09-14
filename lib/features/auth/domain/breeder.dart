@@ -41,6 +41,11 @@ abstract class Breeder with _$Breeder {
     )
     @Default(BreederStatus.pending)
     BreederStatus status,
+    // Whether at least one association has an admin-approved document.
+    // Deliberately separate from `verifiedBreeder` below (profile
+    // activation), which gates feature access — this only drives a
+    // display badge. Do not conflate the two.
+    @Default(false) bool associationVerified,
   }) = _Breeder;
 
   bool get verifiedBreeder => status == BreederStatus.active;

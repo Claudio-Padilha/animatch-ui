@@ -92,6 +92,35 @@ class _AssociationRow extends StatelessWidget {
                       ?.copyWith(color: AppColors.muted),
                 ),
               ],
+              if (association.documentUrl != null &&
+                  association.verificationStatus !=
+                      AssociationVerificationStatus.unsubmitted) ...[
+                const SizedBox(height: 2),
+                Text(
+                  switch (association.verificationStatus) {
+                    AssociationVerificationStatus.pending =>
+                      'Documento em análise',
+                    AssociationVerificationStatus.approved =>
+                      'Documento aprovado',
+                    AssociationVerificationStatus.rejected =>
+                      association.rejectionReason != null &&
+                              association.rejectionReason!.isNotEmpty
+                          ? 'Documento rejeitado: ${association.rejectionReason}'
+                          : 'Documento rejeitado',
+                    AssociationVerificationStatus.unsubmitted => '',
+                  },
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: switch (association.verificationStatus) {
+                      AssociationVerificationStatus.approved =>
+                        AppColors.primary,
+                      AssociationVerificationStatus.rejected =>
+                        AppColors.error,
+                      _ => AppColors.secondary,
+                    },
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
