@@ -33,6 +33,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final profile = ref.watch(profileProvider);
     final isVerified = ref.watch(authNotifierProvider)?.verifiedBreeder ?? false;
+    // Separate from `isVerified` (profile activation) above — this reflects
+    // whether an admin has approved at least one association's document.
+    final associationVerified =
+        ref.watch(authNotifierProvider)?.associationVerified ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,7 +58,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
-          _HeaderCard(profile: profile),
+          _HeaderCard(profile: profile, associationVerified: associationVerified),
           const SizedBox(height: 16),
           const _StatsCard(),
           const SizedBox(height: 32),
@@ -68,9 +72,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 // ─── Header card ─────────────────────────────────────────────────────────────
 
 class _HeaderCard extends StatelessWidget {
-  const _HeaderCard({required this.profile});
+  const _HeaderCard({required this.profile, required this.associationVerified});
 
   final BreederProfile profile;
+  final bool associationVerified;
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +186,27 @@ class _HeaderCard extends StatelessWidget {
                     const Divider(height: 1),
                     const SizedBox(height: 12),
                     BreederAssociationsList(associations: profile.associations),
+                  ],
+                  if (associationVerified) ...[
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.workspace_premium_rounded,
+                            color: AppColors.secondary, size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Associação Verificada',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ],
               ),
