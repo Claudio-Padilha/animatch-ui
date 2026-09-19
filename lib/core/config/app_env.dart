@@ -26,7 +26,7 @@ abstract final class AppConfig {
 
   static String get apiBaseUrl => switch (_env) {
     _Env.local => 'http://$_localHost:3000',
-    _Env.staging => 'https://staging-api.animatch.com.br',
+    _Env.staging => 'https://animatch-staging.up.railway.app',
     _Env.production => 'https://animatch-production-aa36.up.railway.app',
   };
 
