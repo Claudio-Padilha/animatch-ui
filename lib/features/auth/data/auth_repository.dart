@@ -121,6 +121,21 @@ class AuthRepository {
     await _auth0.webAuthentication(scheme: Auth0Config.scheme).logout();
   }
 
+  // Deletes the breeder's Animatch account and data (backend-side cascade).
+  // The Auth0 identity itself is untouched — the API can't revoke a
+  // stateless JWT — so we clear the locally stored credentials ourselves
+  // to end the session client-side. Logging back in afterwards creates a
+  // fresh profile rather than restoring this one.
+  Future<void> deleteAccount(String breederId) async {
+    await _dio.delete<void>('/breeders/$breederId');
+    try {
+      await _auth0.credentialsManager.clearCredentials();
+    } catch (_) {
+      // Nothing stored / plugin unavailable — clearing notifier state
+      // (done by the caller) is enough to end the session either way.
+    }
+  }
+
   Future<String?> getFreshToken() async {
     try {
       final credentials = await _auth0.credentialsManager.credentials();

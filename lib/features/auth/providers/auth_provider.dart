@@ -58,6 +58,16 @@ class AuthNotifier extends Notifier<Breeder?> {
     state = null;
   }
 
+  // Deletes the account and clears the session. No-op if already logged
+  // out. Throws on failure so the UI can show an error — unlike logout,
+  // a failed delete must not look like it succeeded.
+  Future<void> deleteAccount() async {
+    final id = state?.id;
+    if (id == null) return;
+    await _repository.deleteAccount(id);
+    state = null;
+  }
+
   /// Drops the in-memory session without the Auth0 web-logout round-trip.
   /// Called by the network layer when a request 401s and a silent refresh
   /// fails — the stored credentials are cleared there. The router reacts to

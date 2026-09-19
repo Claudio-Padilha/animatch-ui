@@ -161,6 +161,7 @@ class FakeAuthRepository extends AuthRepository {
     Breeder? signUpResult,
     Breeder? syncBreederResult,
     Object? syncBreederError,
+    Object? deleteAccountError,
   })  : _restoreSessionResult = restoreSessionResult,
         _refreshBreederResult = refreshBreederResult,
         _loginResult = loginResult,
@@ -168,6 +169,7 @@ class FakeAuthRepository extends AuthRepository {
         _signUpResult = signUpResult,
         _syncBreederResult = syncBreederResult,
         _syncBreederError = syncBreederError,
+        _deleteAccountError = deleteAccountError,
         super(Dio());
 
   final Breeder? _restoreSessionResult;
@@ -177,12 +179,14 @@ class FakeAuthRepository extends AuthRepository {
   final Breeder? _signUpResult;
   final Breeder? _syncBreederResult;
   final Object? _syncBreederError;
+  final Object? _deleteAccountError;
   int restoreSessionCalls = 0;
   int refreshBreederCalls = 0;
   int logoutCalls = 0;
   int loginCalls = 0;
   int signUpCalls = 0;
   final List<Map<String, dynamic>> syncBreederCalls = [];
+  final List<String> deleteAccountCalls = [];
 
   @override
   Future<Breeder?> restoreSession() async {
@@ -231,6 +235,12 @@ class FakeAuthRepository extends AuthRepository {
     });
     if (_syncBreederError != null) throw _syncBreederError;
     return _syncBreederResult!;
+  }
+
+  @override
+  Future<void> deleteAccount(String breederId) async {
+    deleteAccountCalls.add(breederId);
+    if (_deleteAccountError != null) throw _deleteAccountError;
   }
 }
 

@@ -224,6 +224,112 @@ void main() {
       await tester.pumpAndSettle();
       expect(fakeAuthRepo.logoutCalls, 1);
     });
+
+    testWidgets('delete-account: cancel on the confirm dialog does nothing',
+        (tester) async {
+      final container = await _pumpProfileScreen(
+        tester,
+        statistics: () => const BreederStatistics(
+          activeAnimals: 0,
+          likes: 0,
+          breederMatches: 0,
+        ),
+      );
+
+      await tester.tap(find.text('Excluir conta'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(container.read(authNotifierProvider), isNotNull);
+    });
+
+    testWidgets('delete-account: confirm calls deleteAccount() and clears the session',
+        (tester) async {
+      final fakeAuthRepo = FakeAuthRepository();
+      final container = ProviderContainer(
+        retry: (retryCount, error) => null,
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+          authNotifierProvider.overrideWith(() => SeededAuthNotifier(_verifiedBreeder)),
+          breederStatisticsProvider.overrideWith(
+            () => _FakeStatisticsNotifier(
+              () => const BreederStatistics(
+                activeAnimals: 0,
+                likes: 0,
+                breederMatches: 0,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: ProfileScreen()),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Excluir conta'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Excluir'));
+      await tester.pumpAndSettle();
+
+      expect(fakeAuthRepo.deleteAccountCalls, ['b1']);
+      expect(container.read(authNotifierProvider), isNull);
+    });
+
+    testWidgets(
+        'delete-account: failure shows an error SnackBar and keeps the session',
+        (tester) async {
+      final fakeAuthRepo = FakeAuthRepository(
+        deleteAccountError: Exception('boom'),
+      );
+      final container = ProviderContainer(
+        retry: (retryCount, error) => null,
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+          authNotifierProvider.overrideWith(() => SeededAuthNotifier(_verifiedBreeder)),
+          breederStatisticsProvider.overrideWith(
+            () => _FakeStatisticsNotifier(
+              () => const BreederStatistics(
+                activeAnimals: 0,
+                likes: 0,
+                breederMatches: 0,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: ProfileScreen()),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Excluir conta'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Excluir'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Erro ao excluir conta. Tente novamente.'), findsOneWidget);
+      expect(container.read(authNotifierProvider), isNotNull);
+    });
   });
 }
 

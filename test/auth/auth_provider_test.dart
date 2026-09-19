@@ -163,4 +163,49 @@ void main() {
       expect(container.read(authNotifierProvider), isNull);
     });
   });
+
+  group('deleteAccount', () {
+    test('is a no-op when logged out', () async {
+      final fake = FakeAuthRepository();
+      final container = ProviderContainer(overrides: [
+        authRepositoryProvider.overrideWithValue(fake),
+      ]);
+      addTearDown(container.dispose);
+
+      await container.read(authNotifierProvider.notifier).deleteAccount();
+
+      expect(fake.deleteAccountCalls, isEmpty);
+      expect(container.read(authNotifierProvider), isNull);
+    });
+
+    test('calls repository with the current breeder id then clears state', () async {
+      final fake = FakeAuthRepository();
+      final container = ProviderContainer(overrides: [
+        authRepositoryProvider.overrideWithValue(fake),
+      ]);
+      addTearDown(container.dispose);
+
+      container.read(authNotifierProvider.notifier).updateBreeder(_updated);
+      await container.read(authNotifierProvider.notifier).deleteAccount();
+
+      expect(fake.deleteAccountCalls, ['1']);
+      expect(container.read(authNotifierProvider), isNull);
+    });
+
+    test('propagates a failure and leaves the session intact', () async {
+      final fake = FakeAuthRepository(deleteAccountError: Exception('boom'));
+      final container = ProviderContainer(overrides: [
+        authRepositoryProvider.overrideWithValue(fake),
+      ]);
+      addTearDown(container.dispose);
+
+      container.read(authNotifierProvider.notifier).updateBreeder(_updated);
+
+      await expectLater(
+        container.read(authNotifierProvider.notifier).deleteAccount(),
+        throwsException,
+      );
+      expect(container.read(authNotifierProvider), _updated);
+    });
+  });
 }

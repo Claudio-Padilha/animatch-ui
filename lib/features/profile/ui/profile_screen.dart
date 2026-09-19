@@ -63,6 +63,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const _StatsCard(),
           const SizedBox(height: 32),
           _SignOutButton(),
+          const SizedBox(height: 12),
+          _DeleteAccountButton(),
         ],
       ),
     );
@@ -378,6 +380,79 @@ class _SignOutButtonState extends ConsumerState<_SignOutButton> {
             },
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Delete account button ─────────────────────────────────────────────────
+
+class _DeleteAccountButton extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_DeleteAccountButton> createState() =>
+      _DeleteAccountButtonState();
+}
+
+class _DeleteAccountButtonState extends ConsumerState<_DeleteAccountButton> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: _isLoading ? null : () => _confirmDelete(context),
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.error,
+        minimumSize: const Size.fromHeight(52),
+      ),
+      child: _isLoading
+          ? const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
+            )
+          : const Text('Excluir conta'),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir conta'),
+        content: const Text(
+          'Isso excluirá permanentemente sua conta e todos os seus dados no '
+          'Animatch (animais, matches, conversas e documentos enviados). '
+          'Essa ação não pode ser desfeita.\n\n'
+          'Seu login continuará ativo — se entrar novamente, um novo perfil '
+          'será criado do zero.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              setState(() => _isLoading = true);
+              try {
+                await ref.read(authNotifierProvider.notifier).deleteAccount();
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Erro ao excluir conta. Tente novamente.'),
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) setState(() => _isLoading = false);
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Excluir'),
           ),
         ],
       ),
